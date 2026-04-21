@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #004cca;
+  --color-primary-container: #0062ff;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #f3f3ff;
+  --color-secondary: #505f76;
+  --color-secondary-container: #d0e1fb;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #54647a;
+  --color-tertiary: #005d86;
+  --color-tertiary-container: #0077aa;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #edf5ff;
+  --color-surface: #f8f9ff;
+  --color-surface-dim: #ccdbf4;
+  --color-surface-bright: #f8f9ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container: #e6eeff;
+  --color-surface-container-high: #dde9ff;
+  --color-surface-container-highest: #d5e3fd;
+  --color-surface-variant: #d5e3fd;
+  --color-on-surface: #0d1c2f;
+  --color-on-surface-variant: #424656;
+  --color-outline: #737687;
+  --color-outline-variant: #c2c6d9;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+  
+  --font-headline: "Manrope", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Inter", sans-serif;
+}
+
+body {
+  @apply bg-surface text-on-surface font-body antialiased selection:bg-primary-container selection:text-on-primary-container;
+}
+
+.glass-panel {
+  @apply bg-surface-container-lowest/60 backdrop-blur-xl;
+}
+.ghost-border {
+  @apply border border-outline-variant/15;
+}
+.ghost-border:hover {
+  @apply shadow-[inset_0_0_0_1px_rgba(194,198,217,0.15)];
+}
+.ambient-shadow {
+  @apply shadow-[0_24px_48px_-12px_rgba(0,76,202,0.05)];
+}
