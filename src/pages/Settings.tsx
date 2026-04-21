@@ -1,12 +1,37 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LogOut, User, Car, Activity, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { MOCK_ENTRIES } from '../data/mockData';
 import { StatusBadge, SohBadge } from '../components/ui/Badge';
+import { apiFetch } from '../utils/api';
 
 export default function Settings() {
   const { currentUser, logout, isAdmin } = useAuth();
+  const [myEntries, setMyEntries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (currentUser) {
+      apiFetch('/soh/my-entries')
+        .then(data => {
+          const shaped = data.map((e: any) => ({
+            id: e.id,
+            oem: e.vehicle.oem,
+            model: e.vehicle.model,
+            year: e.vehicle.year,
+            mileage: e.mileage,
+            region: e.region,
+            date: e.date,
+            soh: e.soh,
+            status: e.status
+          }));
+          setMyEntries(shaped);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [currentUser]);
 
   if (!currentUser) {
     return (
@@ -21,8 +46,6 @@ export default function Settings() {
     );
   }
 
-  const myEntries = MOCK_ENTRIES.filter((e) => e.userId === currentUser.id);
-
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-3xl">
       <div>
@@ -35,12 +58,11 @@ export default function Settings() {
         <h2 className="font-headline font-bold mb-5 flex items-center gap-2"><User className="w-5 h-5 text-primary" /> Profilo</h2>
         <div className="flex items-center gap-5">
           <div className="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center text-xl font-bold font-headline shrink-0">
-            {currentUser.avatarInitials}
+            {currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}
           </div>
           <div>
             <div className="font-headline font-bold text-xl">{currentUser.name}</div>
             <div className="text-secondary text-sm">{currentUser.email}</div>
-            <div className="text-xs text-secondary mt-1">Membro dal {new Date(currentUser.joinedAt).toLocaleDateString('it-IT')}</div>
             {isAdmin && (
               <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-primary text-on-primary rounded-full text-[10px] font-bold uppercase tracking-wider">
                 <Shield className="w-3 h-3" /> Admin
@@ -53,7 +75,7 @@ export default function Settings() {
       {/* My entries */}
       <section className="glass-panel ghost-border rounded-2xl p-6">
         <h2 className="font-headline font-bold mb-5 flex items-center gap-2"><Activity className="w-5 h-5 text-primary" /> Le mie misurazioni</h2>
-        {myEntries.length === 0 ? (
+        {loading ? <p>Caricamento...</p> : myEntries.length === 0 ? (
           <div className="text-secondary text-sm text-center py-6">
             <p className="mb-3">Non hai ancora aggiunto misurazioni.</p>
             <Link to="/register" className="text-primary font-semibold hover:underline">Aggiungi la tua prima misurazione →</Link>

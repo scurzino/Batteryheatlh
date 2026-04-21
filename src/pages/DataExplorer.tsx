@@ -1,13 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowUpDown, Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { MOCK_ENTRIES, OEMS, REGIONS, USAGE_TYPES, CHARGE_TYPES, FlatEntry } from '../data/mockData';
+import { OEMS, REGIONS, USAGE_TYPES, CHARGE_TYPES, FlatEntry } from '../data/mockData';
 import { StatusBadge, SohBadge } from '../components/ui/Badge';
+import { apiFetch } from '../utils/api';
 
 type SortField = 'soh' | 'mileage' | 'date' | 'oem' | 'model' | 'year';
 type SortDir = 'asc' | 'desc';
 
 export default function DataExplorer() {
+  const [entries, setEntries] = useState<FlatEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [filterOem, setFilterOem] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
   const [filterUsage, setFilterUsage] = useState('');
@@ -16,8 +20,31 @@ export default function DataExplorer() {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
+  useEffect(() => {
+    apiFetch('/soh/explore')
+      .then(data => {
+        const shaped = data.map((e: any) => ({
+          id: e.id,
+          oem: e.vehicle.oem,
+          model: e.vehicle.model,
+          year: e.vehicle.year,
+          batteryModel: e.vehicle.batteryModel,
+          region: e.region,
+          usageType: e.usageType,
+          chargeType: e.chargeType,
+          soh: e.soh,
+          mileage: e.mileage,
+          measurementMethod: e.measurementMethod,
+          date: e.date,
+          status: e.status
+        }));
+        setEntries(shaped);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
   const filtered: FlatEntry[] = useMemo(() => {
-    let list = [...MOCK_ENTRIES];
+    let list = [...entries];
     if (filterOem) list = list.filter((e) => e.oem === filterOem);
     if (filterRegion) list = list.filter((e) => e.region === filterRegion);
     if (filterUsage) list = list.filter((e) => e.usageType === filterUsage);
@@ -30,7 +57,7 @@ export default function DataExplorer() {
       return av > bv ? -1 : av < bv ? 1 : 0;
     });
     return list;
-  }, [filterOem, filterRegion, filterUsage, filterCharge, filterStatus, sortField, sortDir]);
+  }, [entries, filterOem, filterRegion, filterUsage, filterCharge, filterStatus, sortField, sortDir]);
 
   function toggleSort(field: SortField) {
     if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -51,109 +78,110 @@ export default function DataExplorer() {
           <h1 className="text-3xl font-headline font-bold mb-1">Data Explorer</h1>
           <p className="text-secondary text-sm">Analisi avanzata e filtraggio del dataset SOH.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 ghost-border bg-surface-container-lowest rounded-xl text-sm font-medium hover:bg-surface-container transition-colors">
-          <Download className="w-4 h-4" /> Esporta CSV
-        </button>
       </div>
 
-      {/* Filters */}
-      <div className="glass-panel ghost-border rounded-2xl p-5 flex flex-wrap gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-secondary mb-1">OEM</label>
-          <select value={filterOem} onChange={(e) => setFilterOem(e.target.value)} className={SELECT}>
-            <option value="">Tutti</option>
-            {OEMS.map((o) => <option key={o}>{o}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-secondary mb-1">Regione</label>
-          <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} className={SELECT}>
-            <option value="">Tutte</option>
-            {REGIONS.map((r) => <option key={r}>{r}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-secondary mb-1">Utilizzo</label>
-          <select value={filterUsage} onChange={(e) => setFilterUsage(e.target.value)} className={SELECT}>
-            <option value="">Tutti</option>
-            {USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-secondary mb-1">Ricarica</label>
-          <select value={filterCharge} onChange={(e) => setFilterCharge(e.target.value)} className={SELECT}>
-            <option value="">Tutte</option>
-            {CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-secondary mb-1">Stato</label>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={SELECT}>
-            <option value="">Tutti</option>
-            <option value="approved">Approvato</option>
-            <option value="pending_moderation">In Revisione</option>
-            <option value="flagged">Segnalato</option>
-            <option value="rejected">Rifiutato</option>
-          </select>
-        </div>
-      </div>
+      {loading ? <p>Caricamento dati...</p> : (
+        <>
+          {/* Filters */}
+          <div className="glass-panel ghost-border rounded-2xl p-5 flex flex-wrap gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">OEM</label>
+              <select value={filterOem} onChange={(e) => setFilterOem(e.target.value)} className={SELECT}>
+                <option value="">Tutti</option>
+                {OEMS.map((o) => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Regione</label>
+              <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} className={SELECT}>
+                <option value="">Tutte</option>
+                {REGIONS.map((r) => <option key={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Utilizzo</label>
+              <select value={filterUsage} onChange={(e) => setFilterUsage(e.target.value)} className={SELECT}>
+                <option value="">Tutti</option>
+                {USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Ricarica</label>
+              <select value={filterCharge} onChange={(e) => setFilterCharge(e.target.value)} className={SELECT}>
+                <option value="">Tutte</option>
+                {CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Stato</label>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={SELECT}>
+                <option value="">Tutti</option>
+                <option value="APPROVED">Approvato</option>
+                <option value="PENDING">In Revisione</option>
+                <option value="FLAGGED_BY_SYSTEM">Segnalato (AI)</option>
+                <option value="REJECTED">Rifiutato</option>
+              </select>
+            </div>
+          </div>
 
-      {/* Table */}
-      <div className="glass-panel ghost-border rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b ghost-border flex items-center justify-between">
-          <span className="text-sm font-semibold text-secondary">{filtered.length} risultati</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b ghost-border text-xs font-semibold text-secondary uppercase tracking-wide">
-                {([
-                  ['oem', 'OEM'], ['model', 'Modello'], ['year', 'Anno'],
-                  ['soh', 'SOH %'], ['mileage', 'Km'],
-                  ['region', 'Regione'], ['usage', 'Utilizzo'], ['charge', 'Ricarica'],
-                  ['method', 'Metodo'], ['date', 'Data'], ['status', 'Stato'],
-                ] as [string, string][]).map(([field, label]) => {
-                  const sortable: SortField[] = ['oem', 'model', 'year', 'soh', 'mileage', 'date'];
-                  const sf = field as SortField;
-                  return (
-                    <th key={field} className={`px-4 py-3 text-left ${sortable.includes(sf) ? 'cursor-pointer hover:text-on-surface' : ''}`}
-                      onClick={() => sortable.includes(sf) && toggleSort(sf)}>
-                      <div className="flex items-center gap-1">
-                        {label}
-                        {sortable.includes(sf) && <SortIcon field={sf} />}
-                      </div>
-                    </th>
-                  );
-                })}
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((e, i) => (
-                <tr key={e.id} className={`border-b ghost-border hover:bg-surface-container/50 transition-colors ${i % 2 === 0 ? '' : 'bg-surface-container/20'}`}>
-                  <td className="px-4 py-3 font-semibold">{e.oem}</td>
-                  <td className="px-4 py-3">{e.model}</td>
-                  <td className="px-4 py-3">{e.year}</td>
-                  <td className="px-4 py-3"><SohBadge soh={e.soh} /></td>
-                  <td className="px-4 py-3 font-mono text-xs">{e.mileage.toLocaleString('it-IT')}</td>
-                  <td className="px-4 py-3">{e.region}</td>
-                  <td className="px-4 py-3">{e.usageType}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{e.chargeType}</td>
-                  <td className="px-4 py-3 text-xs text-secondary">{e.measurementMethod}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{new Date(e.date).toLocaleDateString('it-IT')}</td>
-                  <td className="px-4 py-3"><StatusBadge status={e.status} /></td>
-                  <td className="px-4 py-3">
-                    <Link to={`/vehicle/${e.id}`} className="text-primary text-xs font-semibold hover:underline">Dettagli</Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="p-12 text-center text-secondary">Nessun risultato con i filtri selezionati.</div>
-          )}
-        </div>
-      </div>
+          {/* Table */}
+          <div className="glass-panel ghost-border rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b ghost-border flex items-center justify-between">
+              <span className="text-sm font-semibold text-secondary">{filtered.length} risultati</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b ghost-border text-xs font-semibold text-secondary uppercase tracking-wide">
+                    {([
+                      ['oem', 'OEM'], ['model', 'Modello'], ['year', 'Anno'],
+                      ['soh', 'SOH %'], ['mileage', 'Km'],
+                      ['region', 'Regione'], ['usage', 'Utilizzo'], ['charge', 'Ricarica'],
+                      ['method', 'Metodo'], ['date', 'Data'], ['status', 'Stato'],
+                    ] as [string, string][]).map(([field, label]) => {
+                      const sortable: SortField[] = ['oem', 'model', 'year', 'soh', 'mileage', 'date'];
+                      const sf = field as SortField;
+                      return (
+                        <th key={field} className={`px-4 py-3 text-left ${sortable.includes(sf) ? 'cursor-pointer hover:text-on-surface' : ''}`}
+                          onClick={() => sortable.includes(sf) && toggleSort(sf)}>
+                          <div className="flex items-center gap-1">
+                            {label}
+                            {sortable.includes(sf) && <SortIcon field={sf} />}
+                          </div>
+                        </th>
+                      );
+                    })}
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((e, i) => (
+                    <tr key={e.id} className={`border-b ghost-border hover:bg-surface-container/50 transition-colors ${i % 2 === 0 ? '' : 'bg-surface-container/20'}`}>
+                      <td className="px-4 py-3 font-semibold">{e.oem}</td>
+                      <td className="px-4 py-3">{e.model}</td>
+                      <td className="px-4 py-3">{e.year}</td>
+                      <td className="px-4 py-3"><SohBadge soh={e.soh} /></td>
+                      <td className="px-4 py-3 font-mono text-xs">{e.mileage.toLocaleString('it-IT')}</td>
+                      <td className="px-4 py-3">{e.region}</td>
+                      <td className="px-4 py-3">{e.usageType}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{e.chargeType}</td>
+                      <td className="px-4 py-3 text-xs text-secondary">{e.measurementMethod}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{new Date(e.date).toLocaleDateString('it-IT')}</td>
+                      <td className="px-4 py-3"><StatusBadge status={e.status} /></td>
+                      <td className="px-4 py-3">
+                        <Link to={`/vehicle/${e.id}`} className="text-primary text-xs font-semibold hover:underline">Dettagli</Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filtered.length === 0 && (
+                <div className="p-12 text-center text-secondary">Nessun risultato con i filtri selezionati.</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

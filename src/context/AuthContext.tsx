@@ -1,73 +1,86 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, MOCK_USERS } from '../data/mockData';
+import { apiFetch } from '../utils/api';
+
+// Sync this to the User model we now have in DB
+export interface User {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+}
 
 interface AuthContextType {
     currentUser: User | null;
-    login: (email: string, password: string) => { success: boolean; error?: string };
+    isLoading: boolean;
+    login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
-    signup: (name: string, email: string, password: string) => { success: boolean; error?: string };
+    signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const STORAGE_KEY = 'ev_soh_user_id';
-
-// Mutable registry so newly signed-up users persist in session
-const userRegistry: User[] = [...MOCK_USERS];
+const TOKEN_KEY = 'token';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [currentUser, setCurrentUser] = useState<User | null>(() => {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            return userRegistry.find((u) => u.id === saved) ?? null;
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Check if token exists on mount and fetch profile
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) {
+            setIsLoading(false);
+            return;
         }
-        return null;
-    });
 
-    const isAdmin = currentUser?.isAdmin ?? false;
+        apiFetch('/auth/me')
+            .then(user => {
+                setCurrentUser(user);
+            })
+            .catch((err) => {
+                console.error('Invalid token / session expired');
+                localStorage.removeItem(TOKEN_KEY);
+            })
+            .finally(() => setIsLoading(false));
+    }, []);
 
-    function login(email: string, password: string) {
-        const user = userRegistry.find(
-            (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-        if (!user) return { success: false, error: 'Email o password non corretti.' };
-        setCurrentUser(user);
-        localStorage.setItem(STORAGE_KEY, user.id);
-        return { success: true };
+    const isAdmin = currentUser?.role === 'ADMIN';
+
+    async function login(email: string, password: string) {
+        try {
+            const data = await apiFetch('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+            localStorage.setItem(TOKEN_KEY, data.token);
+            setCurrentUser(data.user);
+            return { success: true };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
     }
 
     function logout() {
         setCurrentUser(null);
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(TOKEN_KEY);
     }
 
-    function signup(name: string, email: string, password: string) {
-        if (userRegistry.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-            return { success: false, error: 'Email già registrata.' };
+    async function signup(name: string, email: string, password: string) {
+        try {
+            const data = await apiFetch('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ name, email, password })
+            });
+            localStorage.setItem(TOKEN_KEY, data.token);
+            setCurrentUser(data.user);
+            return { success: true };
+        } catch (err: any) {
+            return { success: false, error: err.message };
         }
-        const initials = name
-            .split(' ')
-            .map((w) => w[0]?.toUpperCase() ?? '')
-            .slice(0, 2)
-            .join('');
-        const newUser: User = {
-            id: `u_${Date.now()}`,
-            name,
-            email,
-            password,
-            isAdmin: false,
-            avatarInitials: initials,
-            joinedAt: new Date().toISOString().split('T')[0],
-        };
-        userRegistry.push(newUser);
-        setCurrentUser(newUser);
-        localStorage.setItem(STORAGE_KEY, newUser.id);
-        return { success: true };
     }
 
     return (
-        <AuthContext.Provider value={{ currentUser, login, logout, signup, isAdmin }}>
+        <AuthContext.Provider value={{ currentUser, isLoading, login, logout, signup, isAdmin }}>
             {children}
         </AuthContext.Provider>
     );
