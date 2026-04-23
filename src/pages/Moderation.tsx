@@ -31,8 +31,7 @@ export default function Moderation() {
     async function action(id: string, actionName: string) {
         if (!confirm(`Are you sure you want to perform ${actionName} on this entry?`)) return;
         try {
-            // Status updates based on flags (For moderation backend it acts on to SohEntry ID).
-            // Our endpoint expects ?status=APPROVED/REJECTED
+            // Status updates directly onto the SohEntry ID
             let mappedStatus = '';
             if (actionName === 'approve' || actionName === 'dismiss') mappedStatus = 'APPROVED';
             if (actionName === 'reject' || actionName === 'remove') mappedStatus = 'REJECTED';
@@ -78,34 +77,34 @@ export default function Moderation() {
                         <p className="text-sm">Nessuna misurazione aspetta il parere di un moderatore in questo momento.</p>
                     </div>
                 ) : (
-                    flags.map((flag) => (
-                        <div key={flag.id} className="glass-panel ghost-border rounded-xl p-5 border-l-4 border-l-amber-400 relative">
+                    flags.map((entry) => (
+                        <div key={entry.id} className="glass-panel ghost-border rounded-xl p-5 border-l-4 border-l-amber-400 relative">
                             <div className="flex flex-col md:flex-row gap-5 md:items-start">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <StatusBadge status="PENDING" />
-                                        <span className="text-xs text-secondary bg-surface-container px-2 py-1 rounded">Rilevata da AI</span>
+                                        <span className="text-xs text-secondary bg-surface-container px-2 py-1 rounded">Rilevata da AI Backend</span>
                                     </div>
                                     <h3 className="font-headline font-bold text-lg mb-2">
-                                        {flag.sohEntry.vehicle.oem} {flag.sohEntry.vehicle.model}
+                                        {entry.vehicle?.oem} {entry.vehicle?.model} ({entry.vehicle?.year})
                                     </h3>
                                     <div className="grid grid-cols-2 text-sm gap-2 mt-4 bg-surface/50 p-3 rounded-lg">
-                                        <div>SOH inserito: <span className="font-bold text-red-600">{flag.sohEntry.soh}%</span></div>
-                                        <div>Previsto (Reg): <span className="font-bold">~{Number(JSON.parse(flag.context || '{}').predicted ?? 0).toFixed(1)}%</span></div>
-                                        <div>Z-Score: <span className="font-bold">{Number(JSON.parse(flag.context || '{}').zScore ?? 0).toFixed(2)} sigma</span></div>
-                                        <div className="col-span-2 text-xs text-secondary mt-1">KM: {flag.sohEntry.mileage} - {flag.sohEntry.usageType} - {flag.sohEntry.chargeType}</div>
+                                        <div>SOH inserito: <span className="font-bold text-red-600">{entry.soh}%</span></div>
+                                        <div className="col-span-2 text-xs text-secondary mt-1">KM: {entry.mileage} - {entry.usageType} - {entry.chargeType}</div>
                                     </div>
-                                    <p className="text-sm mt-3 text-secondary">Motivazione flag: <span className="text-on-surface italic">"{flag.reason}"</span></p>
+                                    {entry.notes && (
+                                        <p className="text-sm mt-3 text-secondary">Note conducente: <span className="text-on-surface italic">"{entry.notes}"</span></p>
+                                    )}
                                 </div>
 
                                 <div className="flex md:flex-col gap-2 shrink-0 md:min-w-48">
-                                    <button onClick={() => action(flag.sohEntryId, 'approve')} className="flex-1 flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                                    <button onClick={() => action(entry.id, 'approve')} className="flex-1 flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
                                         <CheckCircle className="w-4 h-4" /> Approva Dato
                                     </button>
-                                    <button onClick={() => action(flag.sohEntryId, 'reject')} className="flex-1 flex items-center justify-center gap-2 bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                                    <button onClick={() => action(entry.id, 'reject')} className="flex-1 flex items-center justify-center gap-2 bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
                                         <XCircle className="w-4 h-4" /> Rifiuta Dato
                                     </button>
-                                    <Link to={`/vehicle/${flag.sohEntryId}`} className="flex-1 flex items-center justify-center gap-2 bg-surface-container hover:bg-surface-container-high px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                    <Link to={`/vehicle/${entry.id}`} className="flex-1 flex items-center justify-center gap-2 bg-surface-container hover:bg-surface-container-high px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                                         <LayoutGrid className="w-4 h-4" /> Vai al dettaglio
                                     </Link>
                                 </div>
