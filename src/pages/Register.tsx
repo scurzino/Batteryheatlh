@@ -24,6 +24,7 @@ const BATTERY_SUGGESTIONS: Record<string, string[]> = {
 interface FormData {
   oem: string; model: string; year: string; batteryModel: string;
   region: string; usageType: UsageType | ''; chargeType: ChargeType | '';
+  minEnvTemp: string; maxEnvTemp: string;
   soh: string; mileage: string; measurementMethod: MeasurementMethod | '';
   date: string; notes: string;
 }
@@ -31,6 +32,7 @@ interface FormData {
 const INITIAL: FormData = {
   oem: '', model: '', year: '', batteryModel: '',
   region: '', usageType: '', chargeType: '',
+  minEnvTemp: '', maxEnvTemp: '',
   soh: '', mileage: '', measurementMethod: '', date: '', notes: '',
 };
 
@@ -63,7 +65,7 @@ export default function Register() {
 
   function canAdvance() {
     if (step === 0) return form.oem && form.model && form.year && form.batteryModel;
-    if (step === 1) return form.region && form.usageType && form.chargeType;
+    if (step === 1) return form.region && form.usageType && form.chargeType && form.minEnvTemp && form.maxEnvTemp;
     if (step === 2) return form.soh && form.mileage && form.measurementMethod && form.date;
     return true;
   }
@@ -83,6 +85,8 @@ export default function Register() {
         region: form.region,
         usageType: form.usageType,
         chargeType: form.chargeType,
+        minEnvTemp: parseFloat(form.minEnvTemp),
+        maxEnvTemp: parseFloat(form.maxEnvTemp),
         soh: parseFloat(form.soh),
         mileage: parseInt(form.mileage),
         measurementMethod: form.measurementMethod,
@@ -175,12 +179,16 @@ export default function Register() {
 
           {step === 1 && (
             <div className="space-y-5">
-              <div className="mb-6"><h2 className="text-xl font-bold">Utilizzo</h2></div>
-              <Field label="Regione">
+              <div className="mb-6"><h2 className="text-xl font-bold">Utilizzo Ambientale</h2></div>
+              <Field label="Stato di utilizzo prevalente">
                 <select value={form.region} onChange={(e) => set('region', e.target.value)} className={SELECT}>
                   <option value="">Seleziona...</option>{REGIONS.map((r) => <option key={r}>{r}</option>)}
                 </select>
               </Field>
+              <div className="grid grid-cols-2 gap-4">
+                  <Field label="Temp. Min. Media (°C)"><input type="number" value={form.minEnvTemp} onChange={(e) => set('minEnvTemp', e.target.value)} className={INPUT} placeholder="-5" /></Field>
+                  <Field label="Temp. Max. Media (°C)"><input type="number" value={form.maxEnvTemp} onChange={(e) => set('maxEnvTemp', e.target.value)} className={INPUT} placeholder="35" /></Field>
+              </div>
               <Field label="Utilizzo"><select value={form.usageType} onChange={(e) => set('usageType', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
               <Field label="Ricarica"><select value={form.chargeType} onChange={(e) => set('chargeType', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
             </div>

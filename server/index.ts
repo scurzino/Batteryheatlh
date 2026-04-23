@@ -47,7 +47,14 @@ app.get('/api/auth/me', authMiddleware, AuthHandlers.getMe);
 app.get('/api/soh/explore', SohHandlers.getExplore);
 app.get('/api/soh/my-entries', authMiddleware, SohHandlers.getMyEntries);
 app.get('/api/soh/:id', SohHandlers.getEntryById);
-app.post('/api/soh/entry', SohHandlers.addEntry);
+app.post('/api/soh/entry', authMiddleware, SohHandlers.addEntry);
+
+// Routes: Trips & Notes
+app.get('/api/soh/:id/trips', SohHandlers.getTripsByVehicle);
+app.post('/api/soh/:id/trips', authMiddleware, SohHandlers.addTrip);
+app.get('/api/soh/:id/notes', SohHandlers.getNotesByVehicle);
+app.post('/api/soh/:id/notes', authMiddleware, SohHandlers.addNote);
+
 // Routes: Analytics
 app.get('/api/soh/analytics', AnalyticsHandlers.getBenchmarks);
 

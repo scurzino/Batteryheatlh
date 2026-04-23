@@ -101,6 +101,8 @@ export const SohHandlers = {
                     usageType: rest.usageType,
                     chargeType: rest.chargeType,
                     measurementMethod: rest.measurementMethod,
+                    minEnvTemp: rest.minEnvTemp,
+                    maxEnvTemp: rest.maxEnvTemp,
                     date: new Date(rest.date),
                     notes: rest.notes,
                     status,
@@ -152,6 +154,74 @@ export const SohHandlers = {
             res.json(entry);
         } catch (err) {
             res.status(500).json({ error: 'Failed to get entry' });
+        }
+    },
+
+    async getTripsByVehicle(req: Request, res: Response) {
+        try {
+            const trips = await prisma.tripLog.findMany({
+                where: { vehicleId: req.params.id },
+                include: { user: { select: { name: true } } },
+                orderBy: { date: 'desc' }
+            });
+            res.json(trips);
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to get trips' });
+        }
+    },
+
+    async addTrip(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+            
+            const trip = await prisma.tripLog.create({
+                data: {
+                    userId,
+                    vehicleId: req.params.id,
+                    km: parseFloat(req.body.km),
+                    initialSoc: parseFloat(req.body.initialSoc),
+                    finalSoc: parseFloat(req.body.finalSoc),
+                    initialEnvTemp: parseFloat(req.body.initialEnvTemp),
+                    finalEnvTemp: parseFloat(req.body.finalEnvTemp),
+                    chargeType: req.body.chargeType,
+                    date: req.body.date ? new Date(req.body.date) : new Date()
+                }
+            });
+            res.status(201).json(trip);
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to add trip' });
+        }
+    },
+
+    async getNotesByVehicle(req: Request, res: Response) {
+        try {
+            const notes = await prisma.vehicleNote.findMany({
+                where: { vehicleId: req.params.id },
+                include: { user: { select: { name: true, role: true } } },
+                orderBy: { createdAt: 'desc' }
+            });
+            res.json(notes);
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to get notes' });
+        }
+    },
+
+    async addNote(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+            const note = await prisma.vehicleNote.create({
+                data: {
+                    userId,
+                    vehicleId: req.params.id,
+                    content: req.body.content
+                }
+            });
+            res.status(201).json(note);
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to add note' });
         }
     }
 };
