@@ -32,10 +32,10 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Import handlers
-import { AuthHandlers, authMiddleware, adminMiddleware } from './auth';
-import { SohHandlers } from './soh';
-import { AnalyticsHandlers } from './analytics';
-import { ModerationHandlers } from './moderation';
+import { AuthHandlers, authMiddleware, adminMiddleware } from './auth.js';
+import { SohHandlers } from './soh.js';
+import { AnalyticsHandlers } from './analytics.js';
+import { ModerationHandlers } from './moderation.js';
 
 // Routes: Auth
 app.post('/api/auth/register', AuthHandlers.register);

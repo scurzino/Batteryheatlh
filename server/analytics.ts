@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from './index';
+import { prisma } from './index.js';
 
 export const AnalyticsHandlers = {
     async getBenchmarks(req: Request, res: Response) {

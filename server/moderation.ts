@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from './index';
+import { prisma } from './index.js';
 
 export const ModerationHandlers = {
     async getPendingFlags(req: Request, res: Response) {
