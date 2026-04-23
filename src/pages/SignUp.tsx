@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function SignUp() {
@@ -9,6 +9,8 @@ export default function SignUp() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [repeatPassword, setRepeatPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -17,20 +19,34 @@ export default function SignUp() {
         return null;
     }
 
-    function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError('');
-        if (password.length < 6) { setError('La password deve avere almeno 6 caratteri.'); return; }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setError('Inserisci un indirizzo email valido.');
+            return;
+        }
+
+        if (password.length < 6) { 
+            setError('La password deve avere almeno 6 caratteri.'); 
+            return; 
+        }
+
+        if (password !== repeatPassword) {
+            setError('Le password non coincidono.');
+            return;
+        }
+
         setLoading(true);
-        setTimeout(() => {
-            const result = signup(name, email, password);
-            if (result.success) {
-                navigate('/');
-            } else {
-                setError(result.error ?? 'Errore sconosciuto');
-                setLoading(false);
-            }
-        }, 600);
+        const result = await signup(name, email, password);
+        if (result.success) {
+            navigate('/');
+        } else {
+            setError(result.error ?? 'Errore sconosciuto');
+            setLoading(false);
+        }
     }
 
     return (
@@ -75,12 +91,29 @@ export default function SignUp() {
 
                         <div>
                             <label className="block text-sm font-medium text-on-surface mb-1" htmlFor="password">Password</label>
-                            <input
-                                id="password" type="password" required
-                                value={password} onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Minimo 6 caratteri"
-                                className="w-full px-4 py-3 rounded-xl bg-surface-container-lowest ghost-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            />
+                            <div className="relative">
+                                <input
+                                    id="password" type={showPassword ? "text" : "password"} required
+                                    value={password} onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Minimo 6 caratteri"
+                                    className="w-full px-4 py-3 rounded-xl bg-surface-container-lowest ghost-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 pr-10"
+                                />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-secondary hover:text-primary transition-colors">
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-on-surface mb-1" htmlFor="repeatPassword">Ripeti Password</label>
+                            <div className="relative">
+                                <input
+                                    id="repeatPassword" type={showPassword ? "text" : "password"} required
+                                    value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)}
+                                    placeholder="Ripeti la password"
+                                    className="w-full px-4 py-3 rounded-xl bg-surface-container-lowest ghost-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                />
+                            </div>
                         </div>
 
                         <button
