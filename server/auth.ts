@@ -27,8 +27,9 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
 }
 
 // Admin only middleware
-export function adminMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
-    if (req.user?.role !== 'ADMIN') {
+export async function adminMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (user?.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Forbidden: Admin access required' });
     }
     next();

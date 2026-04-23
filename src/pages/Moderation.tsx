@@ -83,11 +83,19 @@ export default function Moderation() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <StatusBadge status="PENDING" />
-                                        <span className="text-xs text-secondary bg-surface-container px-2 py-1 rounded">Rilevata da AI Backend</span>
+                                        <span className={`text-xs px-2 py-1 rounded ${entry.flags?.length > 0 ? 'bg-amber-100 text-amber-800 font-semibold' : 'text-secondary bg-surface-container'}`}>
+                                            {entry.flags?.length > 0 ? 'Segnalazione Utente' : 'Rilevata da AI Backend'}
+                                        </span>
                                     </div>
                                     <h3 className="font-headline font-bold text-lg mb-2">
                                         {entry.vehicle?.oem} {entry.vehicle?.model} ({entry.vehicle?.year})
                                     </h3>
+                                    {entry.flags?.length > 0 && (
+                                        <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-900 mb-2">
+                                            <span className="font-bold">Motivo:</span> "{entry.flags[0].reason}"
+                                            <div className="text-xs mt-1 text-amber-700/70">Segnalato da: {entry.flags[0].reportedBy?.name || 'Utente Anonimo'}</div>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-2 text-sm gap-2 mt-4 bg-surface/50 p-3 rounded-lg">
                                         <div>SOH inserito: <span className="font-bold text-red-600">{entry.soh}%</span></div>
                                         <div className="col-span-2 text-xs text-secondary mt-1">KM: {entry.mileage} - {entry.usageType} - {entry.chargeType}</div>

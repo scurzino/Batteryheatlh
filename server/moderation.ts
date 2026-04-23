@@ -32,7 +32,7 @@ export const ModerationHandlers = {
         try {
             const pending = await prisma.sohEntry.findMany({
                 where: { status: 'FLAGGED_BY_SYSTEM' },
-                include: { vehicle: true, user: true }
+                include: { vehicle: true, user: true, flags: { include: { reportedBy: true }, orderBy: { createdAt: 'desc' } } }
             });
             res.json(pending);
         } catch (err) {

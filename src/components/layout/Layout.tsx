@@ -10,6 +10,13 @@ export default function Layout() {
 
   function handleLogout() { logout(); navigate('/'); setMenuOpen(false); }
 
+  function getInitials(name?: string) {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+
   return (
     <div className="min-h-screen bg-surface flex flex-col">
       <header className="sticky top-0 z-50 glass-panel ghost-border px-6 py-4 flex items-center justify-between">
@@ -40,7 +47,7 @@ export default function Layout() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm hover:bg-primary/90 transition-colors"
               >
-                {currentUser.avatarInitials}
+                {getInitials(currentUser.name)}
               </button>
               {menuOpen && (
                 <div className="absolute right-0 top-11 w-52 glass-panel ghost-border rounded-2xl py-2 shadow-xl z-50">

@@ -14,6 +14,13 @@ export default function SidebarLayout() {
     { name: 'Impostazioni', path: '/settings', icon: SettingsIcon },
   ];
 
+  function getInitials(name?: string) {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+
   function isActive(path: string) {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
@@ -86,7 +93,7 @@ export default function SidebarLayout() {
           {currentUser ? (
             <div className="flex items-center gap-3">
               <Link to="/settings" className="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm shrink-0 hover:bg-primary/90 transition-colors">
-                {currentUser.avatarInitials}
+                {getInitials(currentUser.name)}
               </Link>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold truncate">{currentUser.name}</div>
