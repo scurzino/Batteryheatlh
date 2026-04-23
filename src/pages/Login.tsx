@@ -95,11 +95,6 @@ export default function Login() {
                         <Link to="/signup" className="text-primary font-semibold hover:underline">Registrati</Link>
                     </div>
 
-                    <div className="mt-5 p-4 rounded-xl bg-surface-container text-xs text-secondary space-y-1">
-                        <p className="font-semibold text-on-surface mb-1">Account demo:</p>
-                        <p><span className="font-mono bg-surface-container-lowest px-1 rounded">marco@example.it</span> / <span className="font-mono bg-surface-container-lowest px-1 rounded">password</span></p>
-                        <p><span className="font-mono bg-surface-container-lowest px-1 rounded">admin@ev-soh.it</span> / <span className="font-mono bg-surface-container-lowest px-1 rounded">admin123</span> (admin)</p>
-                    </div>
                 </div>
             </div>
         </div>
