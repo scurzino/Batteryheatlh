@@ -12,6 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3005;
 
 // 1. Security & Parsing Middlewares
+app.set('trust proxy', 1); // Respect Vercel's 'X-Forwarded-For' IP hiding
 app.use(helmet()); // Basic security headers
 app.use(cors({ origin: '*' })); // Should be restricted in production
 app.use(express.json()); // JSON body parser
