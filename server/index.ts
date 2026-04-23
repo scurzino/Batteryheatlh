@@ -60,6 +60,10 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     res.status(500).json({ error: 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Backend server listening on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Backend server listening on port ${PORT}`);
+    });
+}
+
+export default app;
