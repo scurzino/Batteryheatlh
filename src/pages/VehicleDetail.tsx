@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ScatterChart, Scatter, ReferenceLine } from 'recharts';
-import { ArrowLeft, Car, MapPin, Zap, Activity, Info, AlertTriangle, ShieldAlert, BadgeCheck, Clock, Flag, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Car, MapPin, Zap, Activity, Info, AlertTriangle, ShieldAlert, BadgeCheck, Clock, Flag, LayoutGrid } from 'lucide-react';
 import { StatusBadge, SohBadge, TagBadge } from '../components/ui/Badge';
 import { getRegressionLine } from '../utils/regressionCheck';
 import Modal from '../components/ui/Modal';
@@ -114,9 +114,18 @@ export default function VehicleDetail() {
 
   peerData.push({ mileage: entry.mileage, soh: entry.soh, type: 'current' });
 
-  function handleReport() {
-    setShowReportModal(false);
-    alert('Segnalazione inviata ai moderatori.');
+  async function handleReport() {
+    try {
+      await apiFetch(`/moderation/report`, {
+        method: 'POST',
+        body: JSON.stringify({ entryId: entry.id, reason: reportReason })
+      });
+      setShowReportModal(false);
+      alert('Segnalazione inviata ai moderatori.');
+      setReportReason('');
+    } catch (err) {
+      alert("Errore nell'invio della segnalazione.");
+    }
   }
 
   return (

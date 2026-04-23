@@ -58,7 +58,8 @@ app.post('/api/soh/:id/notes', authMiddleware, SohHandlers.addNote);
 // Routes: Analytics
 app.get('/api/soh/analytics', AnalyticsHandlers.getBenchmarks);
 
-// Routes: Moderation (Admin only)
+// Routes: Moderation
+app.post('/api/moderation/report', authMiddleware, ModerationHandlers.createReport);
 app.get('/api/moderation/pending', authMiddleware, adminMiddleware, ModerationHandlers.getPendingFlags);
 app.patch('/api/moderation/:id/status', authMiddleware, adminMiddleware, ModerationHandlers.updateStatus);
 
