@@ -5,18 +5,18 @@ interface StatusBadgeProps {
     status: EntryStatus;
 }
 
-const CONFIG: Record<EntryStatus, { label: string; className: string }> = {
-    approved: { label: 'Approvato', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-    pending_moderation: { label: 'In Revisione', className: 'bg-amber-100 text-amber-800 border-amber-200' },
-    flagged: { label: 'Segnalato', className: 'bg-red-100 text-red-800 border-red-200' },
-    rejected: { label: 'Rifiutato', className: 'bg-surface-container-highest text-secondary border-outline-variant/30' },
+const CONFIG: Record<string, { label: string; className: string }> = {
+    APPROVED: { label: 'Approvato', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+    PENDING: { label: 'In Revisione', className: 'bg-amber-100 text-amber-800 border-amber-200' },
+    FLAGGED_BY_SYSTEM: { label: 'Segnalato', className: 'bg-red-100 text-red-800 border-red-200' },
+    REJECTED: { label: 'Rifiutato', className: 'bg-surface-container-highest text-secondary border-outline-variant/30' },
 };
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-    const { label, className } = CONFIG[status];
+export function StatusBadge({ status }: { status: string }) {
+    const config = CONFIG[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
     return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${className}`}>
-            {label}
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${config.className}`}>
+            {config.label}
         </span>
     );
 }

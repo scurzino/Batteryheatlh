@@ -2,11 +2,44 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# EV-SOH: Piattaforma per il Monitoraggio della Salute delle Batterie
+# EV-SOH Community Platform - Full-Stack Edition
 
-Benvenuto nel progetto EV-SOH (State of Health). Questa applicazione è una piattaforma Full-Stack completa per il monitoraggio, l'analisi e la gestione dei dati relativi al degrado delle batterie dei veicoli elettrici (EV).
+La piattaforma **EV-SOH** (State of Health per Veicoli Elettrici) è una web application full-stack creata per la raccolta collettiva di misurazioni sullo stato di salute delle batterie, dotata di validazione matematica dei dati.
 
-Il progetto si è evoluto da un semplice prototipo front-end a una solida architettura web con database relazionale, API RESTful sicure e analisi dei dati integrata.
+## 🛠️ Tecnologie
+- **Front-end**: React + TypeScript + Vite + TailwindCSS
+- **Back-end**: Node.js + Express.js + Rate Limiting / Helmet + JWT
+- **Database**: Prisma ORM + SQLite (configurabile per PostgreSQL)
+
+## ▶️ Installazione e Utilizzo
+
+**Prerequisiti:** `Node.js` v18+ installato.
+
+1. **Clona e Installa:**
+   ```bash
+   npm install
+   ```
+
+2. **Inizializza il Database:**
+   Genera le tabelle SQLite nel file `dev.db` e i client Prisma:
+   ```bash
+   npx prisma db push
+   npx prisma generate
+   ```
+
+3. **Inizializza gli Utenti (Demo e Admin):**
+   ```bash
+   npx tsx prisma/seed.ts
+   ```
+   *In questo modo verranno creati: l'utente base `marco@example.it (psw: password)` e l'amministratore `admin@ev-soh.it (psw: admin123)`.*
+
+4. **Avvia la Piattaforma (Client + Server contemporaneamente):**
+   ```bash
+   npm run dev:all
+   ```
+   
+   - L'interfaccia utente è disponibile su `http://localhost:3000`
+   - Le API del Backend rispondono su `http://localhost:3005`
 
 ## 🚀 Funzionalità Principali
 
