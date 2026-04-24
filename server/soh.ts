@@ -234,5 +234,36 @@ export const SohHandlers = {
         } catch (err) {
             res.status(500).json({ error: 'Failed to add note' });
         }
+    },
+
+    async updateVehicleMetadata(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+            const vehicleId = req.params.id;
+
+            // Authorization: find if user owns at least one entry for this vehicle
+            const userEntry = await prisma.sohEntry.findFirst({
+                where: { vehicleId, userId }
+            });
+
+            if (!userEntry) {
+                return res.status(403).json({ error: 'You do not own this vehicle record' });
+            }
+
+            const updated = await prisma.vehicle.update({
+                where: { id: vehicleId },
+                data: {
+                    grossCapacity: req.body.grossCapacity ? parseFloat(req.body.grossCapacity) : undefined,
+                    netCapacity: req.body.netCapacity ? parseFloat(req.body.netCapacity) : undefined
+                }
+            });
+
+            res.json(updated);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to update vehicle metadata' });
+        }
     }
 };

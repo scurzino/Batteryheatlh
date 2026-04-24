@@ -16,6 +16,7 @@ export default function Settings() {
         .then(data => {
           const shaped = data.map((e: any) => ({
             id: e.id,
+            vehicleId: e.vehicle.id,
             oem: e.vehicle.oem,
             model: e.vehicle.model,
             year: e.vehicle.year,
@@ -23,7 +24,8 @@ export default function Settings() {
             region: e.region,
             date: e.date,
             soh: e.soh,
-            status: e.status
+            status: e.status,
+            needsUpdate: !e.vehicle.grossCapacity || !e.vehicle.netCapacity
           }));
           setMyEntries(shaped);
         })
@@ -85,7 +87,12 @@ export default function Settings() {
             {myEntries.map((e) => (
               <Link key={e.id} to={`/vehicle/${e.id}`} className="flex items-center justify-between p-4 rounded-xl ghost-border hover:bg-surface-container transition-colors group">
                 <div>
-                  <div className="font-semibold text-sm">{e.oem} {e.model} ({e.year})</div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold text-sm">{e.oem} {e.model} ({e.year})</div>
+                    {e.needsUpdate && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" title="Sono disponibili nuovi campi tecnici per migliorare la precisione di questa misurazione."></div>
+                    )}
+                  </div>
                   <div className="text-xs text-secondary mt-0.5">{e.mileage.toLocaleString('it-IT')} km · {e.region} · {new Date(e.date).toLocaleDateString('it-IT')}</div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

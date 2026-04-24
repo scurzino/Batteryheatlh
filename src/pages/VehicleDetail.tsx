@@ -16,6 +16,8 @@ export default function VehicleDetail() {
   const { isAdmin, currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateForm, setUpdateForm] = useState({ grossCapacity: '', netCapacity: '' });
   const [reportReason, setReportReason] = useState('');
   const [hiddenMethods, setHiddenMethods] = useState<string[]>([]);
 
@@ -46,6 +48,10 @@ export default function VehicleDetail() {
     apiFetch(`/soh/${id}`)
       .then(data => {
         setEntry(data);
+        setUpdateForm({
+          grossCapacity: data.vehicle.grossCapacity?.toString() || '',
+          netCapacity: data.vehicle.netCapacity?.toString() || ''
+        });
         return data;
       })
       .then(async (data) => {
@@ -108,6 +114,21 @@ export default function VehicleDetail() {
     }
   }
 
+  async function updateMetadata(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      const updated = await apiFetch(`/soh/vehicle/${entry.vehicle.id}/metadata`, {
+        method: 'PUT',
+        body: JSON.stringify(updateForm)
+      });
+      setEntry({ ...entry, vehicle: updated });
+      setShowUpdateModal(false);
+      alert('Dati aggiornati con successo!');
+    } catch (err) {
+      alert('Errore aggiornamento dati');
+    }
+  }
+
   if (loading) return <div className="p-12 text-center">Caricamento veicolo...</div>;
   if (!entry) return null;
 
@@ -147,6 +168,11 @@ export default function VehicleDetail() {
           <ArrowLeft className="w-4 h-4" /> Torna all'Esplora
         </Link>
         <div className="flex gap-2">
+          {currentUser && currentUser.id === entry.userId && (!entry.vehicle.grossCapacity || !entry.vehicle.netCapacity) && (
+            <button onClick={() => setShowUpdateModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors">
+              <Activity className="w-3.5 h-3.5" /> Aggiorna Dati Tecnici
+            </button>
+          )}
           {currentUser && currentUser.id !== entry.userId && entry.status === 'APPROVED' && (
             <button onClick={() => setShowReportModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors">
               <Flag className="w-3.5 h-3.5" /> Segnala dato
@@ -170,15 +196,7 @@ export default function VehicleDetail() {
         </div>
       )}
 
-      {(!entry.vehicle.grossCapacity || entry.measurementTemp === null || entry.measurementTemp === undefined) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 text-blue-800">
-          <Info className="w-5 h-5 shrink-0" />
-          <div className="text-sm">
-            <span className="font-bold block mb-0.5">Aggiornamento Scheda Consigliato (V1.1)</span>
-            Questa archiviazione utilizza dati di classificazione generici o storici. Per favorire calcoli di degrado più scientifici, aggiungi nuove misurazioni indicando Capacità Netta/Lorda del veicolo e Temperature di Test.
-          </div>
-        </div>
-      )}
+
 
       {/* Main Card */}
       <div className="glass-panel ghost-border rounded-3xl p-6 md:p-8 relative overflow-hidden">
@@ -465,6 +483,42 @@ export default function VehicleDetail() {
             <button onClick={handleReport} disabled={!reportReason.trim()} className="px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50">Invia Segnalazione</button>
           </div>
         </div>
+      </Modal>
+
+      <Modal isOpen={showUpdateModal} onClose={() => setShowUpdateModal(false)} title="Aggiorna Dati Tecnici Veicolo">
+        <form onSubmit={updateMetadata} className="space-y-4 text-sm">
+          <p className="text-secondary">Inserisci la capacità della batteria per migliorare la precisione delle analisi di degrado della community.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Capacità Lorda (kWh)</label>
+              <input
+                type="number"
+                step="0.1"
+                required
+                value={updateForm.grossCapacity}
+                onChange={(e) => setUpdateForm({ ...updateForm, grossCapacity: e.target.value })}
+                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none"
+                placeholder="es. 77.4"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Capacità Netta (kWh)</label>
+              <input
+                type="number"
+                step="0.1"
+                required
+                value={updateForm.netCapacity}
+                onChange={(e) => setUpdateForm({ ...updateForm, netCapacity: e.target.value })}
+                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none"
+                placeholder="es. 74.0"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowUpdateModal(false)} className="px-4 py-2 font-medium text-secondary hover:text-on-surface">Annulla</button>
+            <button type="submit" className="px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary/90 transition-colors">Salva Modifiche</button>
+          </div>
+        </form>
       </Modal>
 
     </div>
