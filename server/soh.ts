@@ -81,7 +81,17 @@ export const SohHandlers = {
             });
             if (!vehicle) {
                 vehicle = await prisma.vehicle.create({
-                    data: { oem, model, year, batteryModel }
+                    data: {
+                        oem, model, year, batteryModel,
+                        grossCapacity: rest.grossCapacity,
+                        netCapacity: rest.netCapacity
+                    }
+                });
+            } else if (!vehicle.grossCapacity && rest.grossCapacity) {
+                // Update older records if new data is provided
+                vehicle = await prisma.vehicle.update({
+                    where: { id: vehicle.id },
+                    data: { grossCapacity: rest.grossCapacity, netCapacity: rest.netCapacity }
                 });
             }
 
@@ -101,6 +111,7 @@ export const SohHandlers = {
                     usageType: rest.usageType,
                     chargeType: rest.chargeType,
                     measurementMethod: rest.measurementMethod,
+                    measurementTemp: rest.measurementTemp,
                     minEnvTemp: rest.minEnvTemp,
                     maxEnvTemp: rest.maxEnvTemp,
                     date: new Date(rest.date),
@@ -174,7 +185,7 @@ export const SohHandlers = {
         try {
             const userId = (req as any).user?.id;
             if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-            
+
             const trip = await prisma.tripLog.create({
                 data: {
                     userId,

@@ -31,6 +31,8 @@ model Vehicle {
   model        String
   year         Int
   batteryModel String
+  grossCapacity Float?
+  netCapacity   Float?
 
   entries      SohEntry[]
   trips        TripLog[]
@@ -49,6 +51,7 @@ model SohEntry {
   usageType         String
   chargeType        String
   measurementMethod String
+  measurementTemp   Float?
   minEnvTemp        Float?
   maxEnvTemp        Float?
   date              DateTime

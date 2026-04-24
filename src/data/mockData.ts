@@ -5,12 +5,7 @@ export interface BaseVehicle {
   batteryModel: string;
 }
 
-export type Region =
-  | 'Nord Italia'
-  | 'Centro Italia'
-  | 'Sud Italia'
-  | 'Isole'
-  | 'Urbano';
+// Le region/paesi ora sono semplici stringhe per supportare tutti gli stati del mondo.
 
 export type UsageType = 'Urbano' | 'Extraurbano' | 'Misto' | 'Autostrada';
 export type ChargeType = 'Prevalentemente AC' | 'Prevalentemente DC' | 'Misto AC/DC';
@@ -33,7 +28,7 @@ export interface FlatEntry extends BaseVehicle {
   vehicleId?: string; // Optional per retrocompatibilità backend/mock
   soh: number;
   mileage: number;
-  region: Region;
+  region: string;
   usageType: UsageType;
   chargeType: ChargeType;
   measurementMethod: MeasurementMethod;
@@ -63,11 +58,11 @@ export const OEMS = [
   'BYD',
 ] as const;
 
-export const REGIONS: Region[] = [
-  'Nord Italia',
-  'Centro Italia',
-  'Sud Italia',
-  'Isole',
+export const COUNTRIES: string[] = [
+  'Italia', 'Francia', 'Germania', 'Regno Unito', 'Spagna', 'Olanda', 'Belgio', 'Svizzera', 'Austria',
+  'Norvegia', 'Svezia', 'Danimarca', 'Finlandia', 'Polonia', 'Portogallo', 'Grecia', 'Irlanda',
+  'Stati Uniti', 'Canada', 'Australia', 'Nuova Zelanda', 'Giappone', 'Corea del Sud', 'Cina',
+  'Emirati Arabi Uniti', 'Altro'
 ];
 
 export const USAGE_TYPES: UsageType[] = [

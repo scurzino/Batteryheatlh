@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, CheckCircle, Car, MapPin, Zap, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
-import { OEMS, REGIONS, USAGE_TYPES, CHARGE_TYPES, MEASUREMENT_METHODS, UsageType, ChargeType, MeasurementMethod } from '../data/mockData';
+import { OEMS, COUNTRIES, USAGE_TYPES, CHARGE_TYPES, MEASUREMENT_METHODS, UsageType, ChargeType, MeasurementMethod } from '../data/mockData';
 
 const STEPS = [
   { label: 'Veicolo', icon: Car },
@@ -23,16 +23,18 @@ const BATTERY_SUGGESTIONS: Record<string, string[]> = {
 
 interface FormData {
   oem: string; model: string; year: string; batteryModel: string;
+  grossCapacity: string; netCapacity: string;
   region: string; usageType: UsageType | ''; chargeType: ChargeType | '';
-  minEnvTemp: string; maxEnvTemp: string;
+  minEnvTemp: string; maxEnvTemp: string; measurementTemp: string;
   soh: string; mileage: string; measurementMethod: MeasurementMethod | '';
   date: string; notes: string;
 }
 
 const INITIAL: FormData = {
   oem: '', model: '', year: '', batteryModel: '',
+  grossCapacity: '', netCapacity: '',
   region: '', usageType: '', chargeType: '',
-  minEnvTemp: '', maxEnvTemp: '',
+  minEnvTemp: '', maxEnvTemp: '', measurementTemp: '',
   soh: '', mileage: '', measurementMethod: '', date: '', notes: '',
 };
 
@@ -82,14 +84,17 @@ export default function Register() {
         model: form.model,
         year: parseInt(form.year),
         batteryModel: form.batteryModel,
+        grossCapacity: form.grossCapacity ? parseFloat(form.grossCapacity) : undefined,
+        netCapacity: form.netCapacity ? parseFloat(form.netCapacity) : undefined,
         region: form.region,
         usageType: form.usageType,
         chargeType: form.chargeType,
-        minEnvTemp: parseFloat(form.minEnvTemp),
-        maxEnvTemp: parseFloat(form.maxEnvTemp),
+        minEnvTemp: form.minEnvTemp ? parseFloat(form.minEnvTemp) : undefined,
+        maxEnvTemp: form.maxEnvTemp ? parseFloat(form.maxEnvTemp) : undefined,
         soh: parseFloat(form.soh),
         mileage: parseInt(form.mileage),
         measurementMethod: form.measurementMethod,
+        measurementTemp: form.measurementTemp ? parseFloat(form.measurementTemp) : undefined,
         date: form.date,
         notes: form.notes
       };
@@ -173,7 +178,13 @@ export default function Register() {
                 <Field label="Modello"><input value={form.model} onChange={(e) => set('model', e.target.value)} className={INPUT} /></Field>
                 <Field label="Anno"><input type="number" value={form.year} onChange={(e) => set('year', e.target.value)} className={INPUT} /></Field>
               </div>
-              <Field label="Modello batteria"><input value={form.batteryModel} onChange={(e) => set('batteryModel', e.target.value)} className={INPUT} /></Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Modello batteria"><input value={form.batteryModel} onChange={(e) => set('batteryModel', e.target.value)} className={INPUT} placeholder="es. LFP 60kWh" /></Field>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Capacità Lorda (kWh) - Opzionale"><input type="number" step="0.1" value={form.grossCapacity} onChange={(e) => set('grossCapacity', e.target.value)} className={INPUT} placeholder="77.4" /></Field>
+                <Field label="Capacità Netta (kWh) - Opzionale"><input type="number" step="0.1" value={form.netCapacity} onChange={(e) => set('netCapacity', e.target.value)} className={INPUT} placeholder="74.0" /></Field>
+              </div>
             </div>
           )}
 
@@ -182,12 +193,12 @@ export default function Register() {
               <div className="mb-6"><h2 className="text-xl font-bold">Utilizzo Ambientale</h2></div>
               <Field label="Stato di utilizzo prevalente">
                 <select value={form.region} onChange={(e) => set('region', e.target.value)} className={SELECT}>
-                  <option value="">Seleziona...</option>{REGIONS.map((r) => <option key={r}>{r}</option>)}
+                  <option value="">Seleziona Stato...</option>{COUNTRIES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                  <Field label="Temp. Min. Media (°C)"><input type="number" value={form.minEnvTemp} onChange={(e) => set('minEnvTemp', e.target.value)} className={INPUT} placeholder="-5" /></Field>
-                  <Field label="Temp. Max. Media (°C)"><input type="number" value={form.maxEnvTemp} onChange={(e) => set('maxEnvTemp', e.target.value)} className={INPUT} placeholder="35" /></Field>
+                <Field label="Temp. Min. Media (°C)"><input type="number" value={form.minEnvTemp} onChange={(e) => set('minEnvTemp', e.target.value)} className={INPUT} placeholder="-5" /></Field>
+                <Field label="Temp. Max. Media (°C)"><input type="number" value={form.maxEnvTemp} onChange={(e) => set('maxEnvTemp', e.target.value)} className={INPUT} placeholder="35" /></Field>
               </div>
               <Field label="Utilizzo"><select value={form.usageType} onChange={(e) => set('usageType', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
               <Field label="Ricarica"><select value={form.chargeType} onChange={(e) => set('chargeType', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
@@ -197,10 +208,15 @@ export default function Register() {
           {step === 2 && (
             <div className="space-y-5">
               <div className="mb-6"><h2 className="text-xl font-bold">Misurazione</h2></div>
-              <Field label="SOH (%)"><input type="number" step="0.1" value={form.soh} onChange={(e) => set('soh', e.target.value)} className={INPUT} /></Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="SOH (%)"><input type="number" step="0.1" value={form.soh} onChange={(e) => set('soh', e.target.value)} className={INPUT} /></Field>
+                <Field label="Temperatura di misurazione (°C) - Opzionale"><input type="number" step="0.1" value={form.measurementTemp} onChange={(e) => set('measurementTemp', e.target.value)} className={INPUT} placeholder="20" /></Field>
+              </div>
               <Field label="Km"><input type="number" value={form.mileage} onChange={(e) => set('mileage', e.target.value)} className={INPUT} /></Field>
-              <Field label="Data"><input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className={INPUT} /></Field>
-              <Field label="Metodo"><select value={form.measurementMethod} onChange={(e) => set('measurementMethod', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{MEASUREMENT_METHODS.map((m) => <option key={m}>{m}</option>)}</select></Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Data"><input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className={INPUT} /></Field>
+                <Field label="Metodo"><select value={form.measurementMethod} onChange={(e) => set('measurementMethod', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{MEASUREMENT_METHODS.map((m) => <option key={m}>{m}</option>)}</select></Field>
+              </div>
             </div>
           )}
 

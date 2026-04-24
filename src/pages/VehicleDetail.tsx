@@ -17,6 +17,15 @@ export default function VehicleDetail() {
   const [activeTab, setActiveTab] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [hiddenMethods, setHiddenMethods] = useState<string[]>([]);
+
+  const METHOD_COLORS: Record<string, string> = {
+    'OBD2 Dongle': '#3b82f6',
+    'Dati ricarica (API)': '#10b981',
+    'SoC Check': '#8b5cf6',
+    'Certificato OEM': '#f59e0b',
+    'Altro': '#64748b'
+  };
 
   const [entry, setEntry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -56,8 +65,8 @@ export default function VehicleDetail() {
         setNotes(fetchedNotes);
 
         if (currentUser) {
-            const fetchedMyEntries = await apiFetch('/soh/my-entries');
-            setMyEntries(fetchedMyEntries.filter((e: any) => e.vehicleId === data.vehicle.id));
+          const fetchedMyEntries = await apiFetch('/soh/my-entries');
+          setMyEntries(fetchedMyEntries.filter((e: any) => e.vehicleId === data.vehicle.id));
         }
       })
       .catch(() => navigate('/'))
@@ -65,38 +74,38 @@ export default function VehicleDetail() {
   }, [id, navigate, currentUser]);
 
   async function submitNote(e: React.FormEvent) {
-      e.preventDefault();
-      setIsSubmittingNote(true);
-      try {
-          const note = await apiFetch(`/soh/${entry.vehicle.id}/notes`, {
-              method: 'POST',
-              body: JSON.stringify({ content: newNote })
-          });
-          // Optimistically append note
-          setNotes([{ ...note, user: { name: currentUser?.name, role: currentUser?.role } }, ...notes]);
-          setNewNote('');
-      } catch (err) {
-          alert('Errore salvataggio nota');
-      } finally {
-          setIsSubmittingNote(false);
-      }
+    e.preventDefault();
+    setIsSubmittingNote(true);
+    try {
+      const note = await apiFetch(`/soh/${entry.vehicle.id}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ content: newNote })
+      });
+      // Optimistically append note
+      setNotes([{ ...note, user: { name: currentUser?.name, role: currentUser?.role } }, ...notes]);
+      setNewNote('');
+    } catch (err) {
+      alert('Errore salvataggio nota');
+    } finally {
+      setIsSubmittingNote(false);
+    }
   }
 
   async function submitTrip(e: React.FormEvent) {
-      e.preventDefault();
-      setIsSubmittingTrip(true);
-      try {
-          const trip = await apiFetch(`/soh/${entry.vehicle.id}/trips`, {
-              method: 'POST',
-              body: JSON.stringify(tripForm)
-          });
-          setTrips([trip, ...trips]);
-          setTripForm({ km: '', initialSoc: '', finalSoc: '', initialEnvTemp: '', finalEnvTemp: '', chargeType: '', date: '' });
-      } catch (err) {
-          alert('Errore salvataggio viaggio');
-      } finally {
-          setIsSubmittingTrip(false);
-      }
+    e.preventDefault();
+    setIsSubmittingTrip(true);
+    try {
+      const trip = await apiFetch(`/soh/${entry.vehicle.id}/trips`, {
+        method: 'POST',
+        body: JSON.stringify(tripForm)
+      });
+      setTrips([trip, ...trips]);
+      setTripForm({ km: '', initialSoc: '', finalSoc: '', initialEnvTemp: '', finalEnvTemp: '', chargeType: '', date: '' });
+    } catch (err) {
+      alert('Errore salvataggio viaggio');
+    } finally {
+      setIsSubmittingTrip(false);
+    }
   }
 
   if (loading) return <div className="p-12 text-center">Caricamento veicolo...</div>;
@@ -110,9 +119,11 @@ export default function VehicleDetail() {
 
   const peerData = peers
     .filter(p => p.id !== entry.id && p.status === 'APPROVED')
-    .map(p => ({ mileage: p.mileage, soh: p.soh, type: 'community' }));
+    .map(p => ({ mileage: p.mileage, soh: p.soh, type: 'community', method: p.measurementMethod }));
 
-  peerData.push({ mileage: entry.mileage, soh: entry.soh, type: 'current' });
+  peerData.push({ mileage: entry.mileage, soh: entry.soh, type: 'current', method: entry.measurementMethod });
+
+  const allMethods = Array.from(new Set(peerData.map(d => d.method).filter(Boolean)));
 
   async function handleReport() {
     try {
@@ -155,6 +166,16 @@ export default function VehicleDetail() {
           <div className="text-sm">
             <span className="font-bold block mb-0.5">Misurazione sotto analisi automatica</span>
             Il dato inserito si discosta dalla media prevista per questo modello. Un moderatore ne valuterà a breve l'autenticità.
+          </div>
+        </div>
+      )}
+
+      {(!entry.vehicle.grossCapacity || entry.measurementTemp === null || entry.measurementTemp === undefined) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 text-blue-800">
+          <Info className="w-5 h-5 shrink-0" />
+          <div className="text-sm">
+            <span className="font-bold block mb-0.5">Aggiornamento Scheda Consigliato (V1.1)</span>
+            Questa archiviazione utilizza dati di classificazione generici o storici. Per favorire calcoli di degrado più scientifici, aggiungi nuove misurazioni indicando Capacità Netta/Lorda del veicolo e Temperature di Test.
           </div>
         </div>
       )}
@@ -223,17 +244,45 @@ export default function VehicleDetail() {
                     if (d.type === 'regression') return <div className="bg-surface-container-low text-xs p-2 rounded shadow">Regressione Prevista: {d.soh.toFixed(1)}%</div>;
                     return (
                       <div className="bg-surface-container-lowest border rounded-xl p-3 shadow-lg text-xs">
-                        <p className="font-bold">{d.type === 'current' ? 'Veicolo Attuale' : 'Veicolo Community'}</p>
+                        <p className="font-bold">{d.type === 'current' ? 'Misurazione Focalizzata' : 'Utente Community'}</p>
                         <p>SOH: {d.soh}%</p>
                         <p>Km: {d.mileage.toLocaleString()}</p>
+                        {d.method && <p className="text-secondary mt-1">Metodo: {d.method}</p>}
                       </div>
                     )
                   }} />
-                  <Scatter name="Regression" data={regressionLine} fill="var(--color-primary)" opacity={0.5} shape="square" />
-                  <Scatter name="Community" data={peerData.filter(d => d.type === 'community')} fill="var(--color-secondary)" opacity={0.5} />
-                  <Scatter name="Current" data={peerData.filter(d => d.type === 'current')} fill="var(--color-error, #dc2626)" opacity={1} />
+                  <Scatter name="Regression" data={regressionLine} fill="var(--color-primary)" opacity={0.3} shape="square" />
+
+                  {allMethods.map(m => !hiddenMethods.includes(String(m)) && (
+                    <Scatter
+                      key={String(m)}
+                      name={String(m)}
+                      data={peerData.filter(d => d.method === m && d.type !== 'current')}
+                      fill={METHOD_COLORS[String(m)] || '#94a3b8'}
+                      opacity={0.6}
+                    />
+                  ))}
+
+                  <Scatter name="Current" data={peerData.filter(d => d.type === 'current')} fill="var(--color-error, #dc2626)" opacity={1} shape="star" />
                 </ScatterChart>
               </ResponsiveContainer>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-4 justify-center">
+              {allMethods.map(m => {
+                const method = String(m);
+                const isHidden = hiddenMethods.includes(method);
+                return (
+                  <button
+                    key={method}
+                    onClick={() => setHiddenMethods(prev => isHidden ? prev.filter(x => x !== method) : [...prev, method])}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border flex items-center gap-2 transition-colors ${isHidden ? 'bg-surface text-secondary border-outline-variant opacity-50' : 'bg-surface-container border-outline text-on-surface shadow-sm'}`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: isHidden ? 'transparent' : (METHOD_COLORS[method] || '#94a3b8'), border: `1px solid ${METHOD_COLORS[method] || '#94a3b8'}` }} />
+                    {method}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -251,13 +300,23 @@ export default function VehicleDetail() {
                 </div>
               </div>
             </div>
-            
-            {(entry.minEnvTemp !== null || entry.maxEnvTemp !== null) && (
+
+            {(entry.minEnvTemp !== null || entry.maxEnvTemp !== null || entry.measurementTemp !== null) && (
               <div className="glass-panel ghost-border rounded-xl p-5">
                 <h4 className="font-bold text-sm mb-3 text-secondary">Temperature d'esercizio</h4>
-                <div className="flex justify-between text-sm font-medium">
-                  <div className="flex items-center gap-1 text-blue-600">Min: {entry.minEnvTemp}°C</div>
-                  <div className="flex items-center gap-1 text-red-600">Max: {entry.maxEnvTemp}°C</div>
+                <div className="flex flex-col gap-2 text-sm font-medium">
+                  {(entry.minEnvTemp !== null || entry.maxEnvTemp !== null) && (
+                    <div className="flex justify-between p-2 bg-surface-container-lowest rounded-lg border ghost-border">
+                      <div className="flex items-center gap-1 text-blue-600">Minima Consueta: {entry.minEnvTemp}°C</div>
+                      <div className="flex items-center gap-1 text-red-600">Massima Consueta: {entry.maxEnvTemp}°C</div>
+                    </div>
+                  )}
+                  {entry.measurementTemp !== null && entry.measurementTemp !== undefined && (
+                    <div className="flex justify-between items-center p-2 bg-surface-container-lowest rounded-lg border ghost-border text-on-surface">
+                      <div className="flex items-center gap-1">Rilevata in fase di test:</div>
+                      <div className="font-bold text-lg">{entry.measurementTemp}°C</div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -278,7 +337,7 @@ export default function VehicleDetail() {
           <div className="space-y-4">
             {myEntries.length === 0 ? <p className="text-secondary text-sm">Nessuna cronologia disponibile per questo veicolo.</p> : (
               myEntries.map((e, idx) => {
-                const isDifferentMethod = idx < myEntries.length - 1 && e.measurementMethod !== myEntries[idx+1].measurementMethod;
+                const isDifferentMethod = idx < myEntries.length - 1 && e.measurementMethod !== myEntries[idx + 1].measurementMethod;
                 return (
                   <div key={e.id} className="flex justify-between items-center border-b ghost-border pb-4 last:border-0 last:pb-0">
                     <div>
@@ -317,43 +376,43 @@ export default function VehicleDetail() {
                   <div className="grid grid-cols-2 gap-4 text-secondary">
                     <div className="bg-surface rounded-lg p-2 border ghost-border">
                       <div className="text-xs font-semibold mb-1">Stato Carica (SOC)</div>
-                      <div className="font-medium text-on-surface">{t.initialSoc}% <ArrowRight className="w-3 h-3 inline mx-1"/> {t.finalSoc}%</div>
+                      <div className="font-medium text-on-surface">{t.initialSoc}% <ArrowRight className="w-3 h-3 inline mx-1" /> {t.finalSoc}%</div>
                     </div>
                     <div className="bg-surface rounded-lg p-2 border ghost-border">
                       <div className="text-xs font-semibold mb-1">Temp. Ambiente</div>
-                      <div className="font-medium text-on-surface">{t.initialEnvTemp}°C <ArrowRight className="w-3 h-3 inline mx-1"/> {t.finalEnvTemp}°C</div>
+                      <div className="font-medium text-on-surface">{t.initialEnvTemp}°C <ArrowRight className="w-3 h-3 inline mx-1" /> {t.finalEnvTemp}°C</div>
                     </div>
                   </div>
                   {t.chargeType && (
                     <div className="mt-3 text-tertiary font-semibold flex items-center gap-1.5 bg-tertiary-container/30 w-fit px-2 py-1 rounded-lg text-xs">
-                      <Zap className="w-3.5 h-3.5"/> Ricarica: {t.chargeType}
+                      <Zap className="w-3.5 h-3.5" /> Ricarica: {t.chargeType}
                     </div>
                   )}
                 </div>
               ))}
             </div>
           </div>
-          
+
           {currentUser && (
             <div className="glass-panel ghost-border rounded-2xl p-6 h-fit sticky top-6">
               <h4 className="font-bold mb-4 text-lg">Aggiungi Viaggio</h4>
               <form onSubmit={submitTrip} className="space-y-3 text-sm">
-                <input type="number" required placeholder="Km percorsi" value={tripForm.km} onChange={e => setTripForm({...tripForm, km: e.target.value})} className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
+                <input type="number" required placeholder="Km percorsi" value={tripForm.km} onChange={e => setTripForm({ ...tripForm, km: e.target.value })} className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
                 <div className="flex gap-2">
-                  <input type="number" required placeholder="SOC % Iniz." value={tripForm.initialSoc} onChange={e => setTripForm({...tripForm, initialSoc: e.target.value})} className="w-1/2 p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
-                  <input type="number" required placeholder="SOC % Fin." value={tripForm.finalSoc} onChange={e => setTripForm({...tripForm, finalSoc: e.target.value})} className="w-1/2 p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
+                  <input type="number" required placeholder="SOC % Iniz." value={tripForm.initialSoc} onChange={e => setTripForm({ ...tripForm, initialSoc: e.target.value })} className="w-1/2 p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
+                  <input type="number" required placeholder="SOC % Fin." value={tripForm.finalSoc} onChange={e => setTripForm({ ...tripForm, finalSoc: e.target.value })} className="w-1/2 p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
                 </div>
                 <div className="flex gap-2">
-                  <input type="number" required placeholder="Temp. Iniz. °C" value={tripForm.initialEnvTemp} onChange={e => setTripForm({...tripForm, initialEnvTemp: e.target.value})} className="w-1/2 p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
-                  <input type="number" required placeholder="Temp. Fin. °C" value={tripForm.finalEnvTemp} onChange={e => setTripForm({...tripForm, finalEnvTemp: e.target.value})} className="w-1/2 p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
+                  <input type="number" required placeholder="Temp. Iniz. °C" value={tripForm.initialEnvTemp} onChange={e => setTripForm({ ...tripForm, initialEnvTemp: e.target.value })} className="w-1/2 p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
+                  <input type="number" required placeholder="Temp. Fin. °C" value={tripForm.finalEnvTemp} onChange={e => setTripForm({ ...tripForm, finalEnvTemp: e.target.value })} className="w-1/2 p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
                 </div>
-                <select value={tripForm.chargeType} onChange={e => setTripForm({...tripForm, chargeType: e.target.value})} className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer">
+                <select value={tripForm.chargeType} onChange={e => setTripForm({ ...tripForm, chargeType: e.target.value })} className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer">
                   <option value="">Nessuna ricarica nel mezzo</option>
                   <option value="AC">Ricarica Lenta (AC)</option>
                   <option value="DC">Ricarica Rapida (DC)</option>
                   <option value="Misto">Misto AC/DC</option>
                 </select>
-                <input type="date" required value={tripForm.date} onChange={e => setTripForm({...tripForm, date: e.target.value})} className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
+                <input type="date" required value={tripForm.date} onChange={e => setTripForm({ ...tripForm, date: e.target.value })} className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
                 <button type="submit" disabled={isSubmittingTrip} className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold mt-2 hover:bg-primary/90 transition-colors disabled:opacity-50">{isSubmittingTrip ? 'Salvataggio...' : 'Salva Viaggio'}</button>
               </form>
             </div>
@@ -363,7 +422,7 @@ export default function VehicleDetail() {
 
       {activeTab === 3 && (
         <div className="glass-panel ghost-border rounded-2xl p-6 md:p-8 animate-in slide-in-from-bottom-4 duration-300">
-          <h3 className="font-headline font-bold text-lg mb-6 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-primary"/> Note della Comunità</h3>
+          <h3 className="font-headline font-bold text-lg mb-6 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-primary" /> Note della Comunità</h3>
           {currentUser && (
             <form onSubmit={submitNote} className="mb-8 flex flex-col sm:flex-row gap-3">
               <input type="text" required placeholder="Condividi un'osservazione utile su questo modello..." value={newNote} onChange={e => setNewNote(e.target.value)} className="flex-1 p-3.5 rounded-xl ghost-border bg-surface-container-lowest text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
