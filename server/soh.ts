@@ -90,10 +90,10 @@ export const SohHandlers = {
                 vehicle = await prisma.vehicle.create({
                     data: {
                         oem, model, year, batteryModel,
-                        grossCapacity: rest.grossCapacity,
-                        netCapacity: rest.netCapacity,
-                        minEnvTemp: rest.minEnvTemp,
-                        maxEnvTemp: rest.maxEnvTemp
+                        grossCapacity: rest.grossCapacity ? parseFloat(rest.grossCapacity) : undefined,
+                        netCapacity: rest.netCapacity ? parseFloat(rest.netCapacity) : undefined,
+                        minEnvTemp: rest.minEnvTemp ? parseFloat(rest.minEnvTemp) : undefined,
+                        maxEnvTemp: rest.maxEnvTemp ? parseFloat(rest.maxEnvTemp) : undefined
                     }
                 });
             } else if (!vehicle.grossCapacity && rest.grossCapacity) {
@@ -101,10 +101,10 @@ export const SohHandlers = {
                 vehicle = await prisma.vehicle.update({
                     where: { id: vehicle.id },
                     data: {
-                        grossCapacity: rest.grossCapacity,
-                        netCapacity: rest.netCapacity,
-                        minEnvTemp: rest.minEnvTemp,
-                        maxEnvTemp: rest.maxEnvTemp
+                        grossCapacity: rest.grossCapacity ? parseFloat(rest.grossCapacity) : undefined,
+                        netCapacity: rest.netCapacity ? parseFloat(rest.netCapacity) : undefined,
+                        minEnvTemp: rest.minEnvTemp ? parseFloat(rest.minEnvTemp) : undefined,
+                        maxEnvTemp: rest.maxEnvTemp ? parseFloat(rest.maxEnvTemp) : undefined
                     }
                 });
             }
@@ -118,14 +118,14 @@ export const SohHandlers = {
             const entry = await prisma.sohEntry.create({
                 data: {
                     vehicleId: vehicle.id,
-                    userId: (req as any).user?.id || null, // Optional if auth middleware not strictly applied
-                    soh: rest.soh,
-                    mileage: rest.mileage,
+                    userId: (req as any).user?.id || null,
+                    soh: parseFloat(rest.soh),
+                    mileage: parseFloat(rest.mileage),
                     region: rest.region,
                     usageType: rest.usageType,
                     chargeType: rest.chargeType,
                     measurementMethod: rest.measurementMethod,
-                    measurementTemp: rest.measurementTemp,
+                    measurementTemp: rest.measurementTemp ? parseFloat(rest.measurementTemp) : null,
                     date: new Date(rest.date),
                     notes: rest.notes,
                     status,
