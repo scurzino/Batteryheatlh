@@ -55,6 +55,7 @@ app.post('/api/soh/:id/trips', authMiddleware, SohHandlers.addTrip);
 app.get('/api/soh/:id/notes', SohHandlers.getNotesByVehicle);
 app.post('/api/soh/:id/notes', authMiddleware, SohHandlers.addNote);
 app.put('/api/soh/vehicle/:id/metadata', authMiddleware, SohHandlers.updateVehicleMetadata);
+app.put('/api/soh/entry/:id/metadata', authMiddleware, SohHandlers.updateEntryMetadata);
 
 // Routes: Analytics
 app.get('/api/soh/analytics', AnalyticsHandlers.getBenchmarks);

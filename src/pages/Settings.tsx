@@ -25,7 +25,7 @@ export default function Settings() {
             date: e.date,
             soh: e.soh,
             status: e.status,
-            needsUpdate: !e.vehicle.grossCapacity || !e.vehicle.netCapacity
+            needsUpdate: !e.vehicle.grossCapacity || !e.vehicle.netCapacity || e.vehicle.minEnvTemp === null || e.vehicle.maxEnvTemp === null || e.measurementTemp === null
           }));
           setMyEntries(shaped);
         })

@@ -73,12 +73,19 @@ export const SohHandlers = {
     async addEntry(req: Request, res: Response) {
         try {
             const dbEntry = req.body;
-            const { oem, model, year, batteryModel, ...rest } = dbEntry;
+            const { oem, model, year, batteryModel, vehicleId, ...rest } = dbEntry;
 
             // 1. Get or create Vehicle
-            let vehicle = await prisma.vehicle.findFirst({
-                where: { oem, model, year, batteryModel }
-            });
+            let vehicle;
+            if (vehicleId) {
+                vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+            }
+
+            if (!vehicle) {
+                vehicle = await prisma.vehicle.findFirst({
+                    where: { oem, model, year, batteryModel }
+                });
+            }
             if (!vehicle) {
                 vehicle = await prisma.vehicle.create({
                     data: {
@@ -256,7 +263,9 @@ export const SohHandlers = {
                 where: { id: vehicleId },
                 data: {
                     grossCapacity: req.body.grossCapacity ? parseFloat(req.body.grossCapacity) : undefined,
-                    netCapacity: req.body.netCapacity ? parseFloat(req.body.netCapacity) : undefined
+                    netCapacity: req.body.netCapacity ? parseFloat(req.body.netCapacity) : undefined,
+                    minEnvTemp: req.body.minEnvTemp ? parseFloat(req.body.minEnvTemp) : undefined,
+                    maxEnvTemp: req.body.maxEnvTemp ? parseFloat(req.body.maxEnvTemp) : undefined
                 }
             });
 
@@ -264,6 +273,32 @@ export const SohHandlers = {
         } catch (err) {
             console.error(err);
             res.status(500).json({ error: 'Failed to update vehicle metadata' });
+        }
+    },
+
+    async updateEntryMetadata(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+            const entryId = req.params.id;
+
+            const entry = await prisma.sohEntry.findUnique({ where: { id: entryId } });
+            if (!entry || entry.userId !== userId) {
+                return res.status(403).json({ error: 'Unauthorized update' });
+            }
+
+            const updated = await prisma.sohEntry.update({
+                where: { id: entryId },
+                data: {
+                    measurementTemp: req.body.measurementTemp ? parseFloat(req.body.measurementTemp) : undefined
+                }
+            });
+
+            res.json(updated);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to update entry metadata' });
         }
     }
 };

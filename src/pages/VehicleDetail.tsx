@@ -17,7 +17,10 @@ export default function VehicleDetail() {
   const [activeTab, setActiveTab] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [updateForm, setUpdateForm] = useState({ grossCapacity: '', netCapacity: '' });
+  const [updateForm, setUpdateForm] = useState({ grossCapacity: '', netCapacity: '', minEnvTemp: '', maxEnvTemp: '', measurementTemp: '' });
+  const [showAddSohModal, setShowAddSohModal] = useState(false);
+  const [addSohForm, setAddSohForm] = useState({ soh: '', mileage: '', measurementMethod: '', measurementTemp: '', date: new Date().toISOString().split('T')[0], notes: '' });
+  const [isSubmittingSoh, setIsSubmittingSoh] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [hiddenMethods, setHiddenMethods] = useState<string[]>([]);
 
@@ -50,8 +53,16 @@ export default function VehicleDetail() {
         setEntry(data);
         setUpdateForm({
           grossCapacity: data.vehicle.grossCapacity?.toString() || '',
-          netCapacity: data.vehicle.netCapacity?.toString() || ''
+          netCapacity: data.vehicle.netCapacity?.toString() || '',
+          minEnvTemp: data.vehicle.minEnvTemp?.toString() || '',
+          maxEnvTemp: data.vehicle.maxEnvTemp?.toString() || '',
+          measurementTemp: data.measurementTemp?.toString() || ''
         });
+        setAddSohForm(prev => ({
+          ...prev,
+          measurementMethod: data.measurementMethod || '',
+          measurementTemp: data.measurementTemp?.toString() || ''
+        }));
         return data;
       })
       .then(async (data) => {
@@ -117,15 +128,60 @@ export default function VehicleDetail() {
   async function updateMetadata(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const updated = await apiFetch(`/soh/vehicle/${entry.vehicle.id}/metadata`, {
+      // 1. Update Vehicle Metadata if any vehicle fields changed
+      const vehicleUpdated = await apiFetch(`/soh/vehicle/${entry.vehicle.id}/metadata`, {
         method: 'PUT',
-        body: JSON.stringify(updateForm)
+        body: JSON.stringify({
+          grossCapacity: updateForm.grossCapacity,
+          netCapacity: updateForm.netCapacity,
+          minEnvTemp: updateForm.minEnvTemp,
+          maxEnvTemp: updateForm.maxEnvTemp
+        })
       });
-      setEntry({ ...entry, vehicle: updated });
+
+      // 2. Update Entry Metadata if measurementTemp changed
+      const entryUpdated = await apiFetch(`/api/soh/entry/${entry.id}/metadata`, {
+        method: 'PUT',
+        body: JSON.stringify({ measurementTemp: updateForm.measurementTemp })
+      });
+
+      setEntry({ ...entryUpdated, vehicle: vehicleUpdated });
       setShowUpdateModal(false);
       alert('Dati aggiornati con successo!');
     } catch (err) {
       alert('Errore aggiornamento dati');
+    }
+  }
+
+  async function submitAddSoh(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSubmittingSoh(true);
+    try {
+      const response = await apiFetch('/soh/entry', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...addSohForm,
+          vehicleId: entry.vehicle.id,
+          // Inherit from current entry
+          region: entry.region,
+          usageType: entry.usageType,
+          chargeType: entry.chargeType,
+          oem: entry.vehicle.oem,
+          model: entry.vehicle.model,
+          year: entry.vehicle.year,
+          batteryModel: entry.vehicle.batteryModel
+        })
+      });
+      // Refresh my entries or redirect?
+      // For now, let's just refresh the history
+      const fetchedMyEntries = await apiFetch('/soh/my-entries');
+      setMyEntries(fetchedMyEntries.filter((e: any) => e.vehicleId === entry.vehicle.id));
+      setShowAddSohModal(false);
+      alert('Nuova misurazione aggiunta!');
+    } catch (err) {
+      alert('Errore aggiunta misurazione');
+    } finally {
+      setIsSubmittingSoh(false);
     }
   }
 
@@ -168,11 +224,13 @@ export default function VehicleDetail() {
           <ArrowLeft className="w-4 h-4" /> Torna all'Esplora
         </Link>
         <div className="flex gap-2">
-          {currentUser && currentUser.id === entry.userId && (!entry.vehicle.grossCapacity || !entry.vehicle.netCapacity) && (
-            <button onClick={() => setShowUpdateModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors">
-              <Activity className="w-3.5 h-3.5" /> Aggiorna Dati Tecnici
-            </button>
-          )}
+          {currentUser && currentUser.id === entry.userId && (
+            (!entry.vehicle.grossCapacity || !entry.vehicle.netCapacity || entry.vehicle.minEnvTemp === null || entry.vehicle.maxEnvTemp === null || entry.measurementTemp === null)
+          ) && (
+              <button onClick={() => setShowUpdateModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors animate-pulse shadow-sm">
+                <Activity className="w-3.5 h-3.5" /> Completa Dati Mancanti
+              </button>
+            )}
           {currentUser && currentUser.id !== entry.userId && entry.status === 'APPROVED' && (
             <button onClick={() => setShowReportModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors">
               <Flag className="w-3.5 h-3.5" /> Segnala dato
@@ -347,9 +405,9 @@ export default function VehicleDetail() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-headline font-bold text-lg">La tua cronologia SOH</h3>
             {currentUser?.id === entry.userId && (
-              <Link to="/register" className="px-4 py-2 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors">
+              <button onClick={() => setShowAddSohModal(true)} className="px-4 py-2 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors">
                 Aggiungi misurazione
-              </Link>
+              </button>
             )}
           </div>
           <div className="space-y-4">
@@ -485,38 +543,103 @@ export default function VehicleDetail() {
         </div>
       </Modal>
 
-      <Modal isOpen={showUpdateModal} onClose={() => setShowUpdateModal(false)} title="Aggiorna Dati Tecnici Veicolo">
+      <Modal isOpen={showUpdateModal} onClose={() => setShowUpdateModal(false)} title="Completa Dati Tecnici">
         <form onSubmit={updateMetadata} className="space-y-4 text-sm">
-          <p className="text-secondary">Inserisci la capacità della batteria per migliorare la precisione delle analisi di degrado della community.</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-secondary mb-1">Capacità Lorda (kWh)</label>
-              <input
-                type="number"
-                step="0.1"
-                required
-                value={updateForm.grossCapacity}
-                onChange={(e) => setUpdateForm({ ...updateForm, grossCapacity: e.target.value })}
-                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none"
-                placeholder="es. 77.4"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-secondary mb-1">Capacità Netta (kWh)</label>
-              <input
-                type="number"
-                step="0.1"
-                required
-                value={updateForm.netCapacity}
-                onChange={(e) => setUpdateForm({ ...updateForm, netCapacity: e.target.value })}
-                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none"
-                placeholder="es. 74.0"
-              />
-            </div>
+          <p className="text-secondary">Sono disponibili nuovi campi per migliorare la precisione delle analisi. Inserisci i dati mancanti per questo record.</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {(!entry.vehicle.grossCapacity || !entry.vehicle.netCapacity) && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-secondary mb-1">Capacità Lorda (kWh)</label>
+                  <input type="number" step="0.1" required value={updateForm.grossCapacity} onChange={(e) => setUpdateForm({ ...updateForm, grossCapacity: e.target.value })}
+                    className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="es. 77.4" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-secondary mb-1">Capacità Netta (kWh)</label>
+                  <input type="number" step="0.1" required value={updateForm.netCapacity} onChange={(e) => setUpdateForm({ ...updateForm, netCapacity: e.target.value })}
+                    className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="es. 74.0" />
+                </div>
+              </>
+            )}
+            {(entry.vehicle.minEnvTemp === null || entry.vehicle.maxEnvTemp === null) && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-secondary mb-1">Temp. Ambiente Minima (°C)</label>
+                  <input type="number" required value={updateForm.minEnvTemp} onChange={(e) => setUpdateForm({ ...updateForm, minEnvTemp: e.target.value })}
+                    className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="-10" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-secondary mb-1">Temp. Ambiente Massima (°C)</label>
+                  <input type="number" required value={updateForm.maxEnvTemp} onChange={(e) => setUpdateForm({ ...updateForm, maxEnvTemp: e.target.value })}
+                    className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="35" />
+                </div>
+              </>
+            )}
+            {entry.measurementTemp === null && (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-secondary mb-1">Temperatura pacco batteria al momento del test (°C)</label>
+                <input type="number" required value={updateForm.measurementTemp} onChange={(e) => setUpdateForm({ ...updateForm, measurementTemp: e.target.value })}
+                  className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="25" />
+              </div>
+            )}
           </div>
+
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowUpdateModal(false)} className="px-4 py-2 font-medium text-secondary hover:text-on-surface">Annulla</button>
-            <button type="submit" className="px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary/90 transition-colors">Salva Modifiche</button>
+            <button type="submit" className="px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary/90 transition-colors">Salva Dati</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={showAddSohModal} onClose={() => setShowAddSohModal(false)} title="Nuova Misurazione SOH">
+        <form onSubmit={submitAddSoh} className="space-y-4 text-sm">
+          <p className="text-secondary font-medium">Auto: <span className="text-on-surface">{entry.vehicle.oem} {entry.vehicle.model}</span></p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">SOH (%)</label>
+              <input type="number" step="0.1" required value={addSohForm.soh} onChange={(e) => setAddSohForm({ ...addSohForm, soh: e.target.value })}
+                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="98.5" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Km totali</label>
+              <input type="number" required value={addSohForm.mileage} onChange={(e) => setAddSohForm({ ...addSohForm, mileage: e.target.value })}
+                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="25000" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Metodo</label>
+              <select value={addSohForm.measurementMethod} onChange={(e) => setAddSohForm({ ...addSohForm, measurementMethod: e.target.value })}
+                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20">
+                <option value="OBD2 Dongle">OBD2 Dongle</option>
+                <option value="Dati ricarica (API)">Dati ricarica (API)</option>
+                <option value="SoC Check">SoC Check</option>
+                <option value="Certificato OEM">Certificato OEM</option>
+                <option value="Altro">Altro</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-secondary mb-1">Temp. Batteria (°C)</label>
+              <input type="number" required value={addSohForm.measurementTemp} onChange={(e) => setAddSohForm({ ...addSohForm, measurementTemp: e.target.value })}
+                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="25" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-secondary mb-1">Data misurazione</label>
+              <input type="date" required value={addSohForm.date} onChange={(e) => setAddSohForm({ ...addSohForm, date: e.target.value })}
+                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-secondary mb-1">Note (opzionale)</label>
+              <textarea value={addSohForm.notes} onChange={(e) => setAddSohForm({ ...addSohForm, notes: e.target.value })}
+                className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20 h-20 resize-none" placeholder="Qualche dettaglio sul test..." />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowAddSohModal(false)} className="px-4 py-2 font-medium text-secondary hover:text-on-surface">Annulla</button>
+            <button type="submit" disabled={isSubmittingSoh} className="px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50">
+              {isSubmittingSoh ? 'Salvataggio...' : 'Conferma Misurazione'}
+            </button>
           </div>
         </form>
       </Modal>
