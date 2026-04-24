@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, ArrowRight, Battery, Gauge, MapPin, Zap, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { OEMS, REGIONS, USAGE_TYPES, CHARGE_TYPES, FlatEntry } from '../data/mockData';
+import { OEMS, COUNTRIES, USAGE_TYPES, CHARGE_TYPES, FlatEntry } from '../data/mockData';
 import { StatusBadge, SohBadge, TagBadge } from '../components/ui/Badge';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
@@ -166,7 +166,7 @@ export default function Explore() {
                   <label className="block text-xs font-semibold text-secondary mb-1.5">Regione</label>
                   <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} className="w-full px-3 py-2 rounded-lg ghost-border bg-surface-container-lowest text-sm focus:outline-none">
                     <option value="">Tutte</option>
-                    {REGIONS.map((r) => <option key={r}>{r}</option>)}
+                    {COUNTRIES.map((r) => <option key={r}>{r}</option>)}
                   </select>
                 </div>
                 <div>
