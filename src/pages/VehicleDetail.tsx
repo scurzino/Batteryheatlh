@@ -140,7 +140,7 @@ export default function VehicleDetail() {
       });
 
       // 2. Update Entry Metadata if measurementTemp changed
-      const entryUpdated = await apiFetch(`/api/soh/entry/${entry.id}/metadata`, {
+      const entryUpdated = await apiFetch(`/soh/entry/${entry.id}/metadata`, {
         method: 'PUT',
         body: JSON.stringify({ measurementTemp: updateForm.measurementTemp })
       });
@@ -377,14 +377,14 @@ export default function VehicleDetail() {
               </div>
             </div>
 
-            {(entry.minEnvTemp !== null || entry.maxEnvTemp !== null || entry.measurementTemp !== null) && (
+            {(entry.vehicle.minEnvTemp !== null || entry.vehicle.maxEnvTemp !== null || entry.measurementTemp !== null) && (
               <div className="glass-panel ghost-border rounded-xl p-5">
                 <h4 className="font-bold text-sm mb-3 text-secondary">Temperature d'esercizio</h4>
                 <div className="flex flex-col gap-2 text-sm font-medium">
-                  {(entry.minEnvTemp !== null || entry.maxEnvTemp !== null) && (
+                  {(entry.vehicle.minEnvTemp !== null || entry.vehicle.maxEnvTemp !== null) && (
                     <div className="flex justify-between p-2 bg-surface-container-lowest rounded-lg border ghost-border">
-                      <div className="flex items-center gap-1 text-blue-600">Minima Consueta: {entry.minEnvTemp}°C</div>
-                      <div className="flex items-center gap-1 text-red-600">Massima Consueta: {entry.maxEnvTemp}°C</div>
+                      <div className="flex items-center gap-1 text-blue-600">Minima Consueta: {entry.vehicle.minEnvTemp}°C</div>
+                      <div className="flex items-center gap-1 text-red-600">Massima Consueta: {entry.vehicle.maxEnvTemp}°C</div>
                     </div>
                   )}
                   {entry.measurementTemp !== null && entry.measurementTemp !== undefined && (

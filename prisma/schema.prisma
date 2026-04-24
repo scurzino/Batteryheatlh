@@ -33,6 +33,8 @@ model Vehicle {
   batteryModel String
   grossCapacity Float?
   netCapacity   Float?
+  minEnvTemp    Float?
+  maxEnvTemp    Float?
 
   entries      SohEntry[]
   trips        TripLog[]
@@ -52,8 +54,6 @@ model SohEntry {
   chargeType        String
   measurementMethod String
   measurementTemp   Float?
-  minEnvTemp        Float?
-  maxEnvTemp        Float?
   date              DateTime
   notes             String?
   status            String   @default("PENDING") // PENDING, APPROVED, REJECTED, FLAGGED_BY_SYSTEM

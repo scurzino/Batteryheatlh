@@ -91,14 +91,21 @@ export const SohHandlers = {
                     data: {
                         oem, model, year, batteryModel,
                         grossCapacity: rest.grossCapacity,
-                        netCapacity: rest.netCapacity
+                        netCapacity: rest.netCapacity,
+                        minEnvTemp: rest.minEnvTemp,
+                        maxEnvTemp: rest.maxEnvTemp
                     }
                 });
             } else if (!vehicle.grossCapacity && rest.grossCapacity) {
                 // Update older records if new data is provided
                 vehicle = await prisma.vehicle.update({
                     where: { id: vehicle.id },
-                    data: { grossCapacity: rest.grossCapacity, netCapacity: rest.netCapacity }
+                    data: {
+                        grossCapacity: rest.grossCapacity,
+                        netCapacity: rest.netCapacity,
+                        minEnvTemp: rest.minEnvTemp,
+                        maxEnvTemp: rest.maxEnvTemp
+                    }
                 });
             }
 
@@ -119,8 +126,6 @@ export const SohHandlers = {
                     chargeType: rest.chargeType,
                     measurementMethod: rest.measurementMethod,
                     measurementTemp: rest.measurementTemp,
-                    minEnvTemp: rest.minEnvTemp,
-                    maxEnvTemp: rest.maxEnvTemp,
                     date: new Date(rest.date),
                     notes: rest.notes,
                     status,
