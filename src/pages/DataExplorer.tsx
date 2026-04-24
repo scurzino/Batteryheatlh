@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowUpDown, Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { OEMS, REGIONS, USAGE_TYPES, CHARGE_TYPES, FlatEntry } from '../data/mockData';
+import { OEMS, COUNTRIES, USAGE_TYPES, CHARGE_TYPES, FlatEntry } from '../data/mockData';
 import { StatusBadge, SohBadge } from '../components/ui/Badge';
 import { apiFetch } from '../utils/api';
 
@@ -95,7 +95,7 @@ export default function DataExplorer() {
               <label className="block text-xs font-semibold text-secondary mb-1">Regione</label>
               <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} className={SELECT}>
                 <option value="">Tutte</option>
-                {REGIONS.map((r) => <option key={r}>{r}</option>)}
+                {COUNTRIES.map((r) => <option key={r}>{r}</option>)}
               </select>
             </div>
             <div>
