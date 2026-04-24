@@ -141,13 +141,25 @@ export const SohHandlers = {
 
     async getExplore(req: Request, res: Response) {
         try {
-            // Returns populated entries for Explorer
+            // Returns only the most recent entry for each unique vehicle
             const entries = await prisma.sohEntry.findMany({
-                include: { vehicle: true },
-                orderBy: { date: 'desc' }
+                orderBy: { date: 'desc' },
+                include: { vehicle: true }
             });
-            res.json(entries);
+
+            const uniqueVehicles: any[] = [];
+            const seen = new Set();
+
+            for (const e of entries) {
+                if (!seen.has(e.vehicleId)) {
+                    uniqueVehicles.push(e);
+                    seen.add(e.vehicleId);
+                }
+            }
+
+            res.json(uniqueVehicles);
         } catch (err) {
+            console.error(err);
             res.status(500).json({ error: 'Failed to get entries' });
         }
     },
