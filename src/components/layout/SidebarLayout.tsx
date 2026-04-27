@@ -8,10 +8,10 @@ export default function SidebarLayout() {
   const navigate = useNavigate();
 
   const navItems = [
-    { name: 'Esplora', path: '/', icon: LayoutGrid },
+    { name: 'Explore', path: '/', icon: LayoutGrid },
     { name: 'Data Explorer', path: '/explorer', icon: Activity },
     { name: 'Benchmarks', path: '/benchmarks', icon: FileBarChart },
-    { name: 'Impostazioni', path: '/settings', icon: SettingsIcon },
+    { name: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
 
   function getInitials(name?: string) {
@@ -38,7 +38,7 @@ export default function SidebarLayout() {
           {currentUser ? (
             <span className="text-xs font-semibold text-secondary">{currentUser.name}</span>
           ) : (
-            <Link to="/login" className="text-xs font-medium text-primary">Accedi</Link>
+            <Link to="/login" className="text-xs font-medium text-primary">Log In</Link>
           )}
         </div>
       </header>
@@ -74,7 +74,7 @@ export default function SidebarLayout() {
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${isActive('/moderation') ? 'bg-primary-container text-on-primary-container' : 'text-secondary hover:bg-surface-container hover:text-on-surface'
                 }`}
             >
-              <Shield className="w-5 h-5" /> Moderazione
+              <Shield className="w-5 h-5" /> Moderation
             </Link>
           )}
 
@@ -83,7 +83,7 @@ export default function SidebarLayout() {
               to="/register"
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
             >
-              <Zap className="w-5 h-5" /> Aggiungi misurazione
+              <Zap className="w-5 h-5" /> Add Measurement
             </Link>
           </div>
         </nav>
@@ -99,13 +99,13 @@ export default function SidebarLayout() {
                 <div className="text-sm font-semibold truncate">{currentUser.name}</div>
                 <div className="text-xs text-secondary truncate">{currentUser.email}</div>
               </div>
-              <button onClick={() => { logout(); navigate('/'); }} className="p-1.5 text-secondary hover:text-red-600 transition-colors" title="Disconnetti">
+              <button onClick={() => { logout(); navigate('/'); }} className="p-1.5 text-secondary hover:text-red-600 transition-colors" title="Log Out">
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
           ) : (
             <Link to="/login" className="flex items-center gap-2 text-sm font-medium text-secondary hover:text-on-surface px-3 py-2 rounded-xl hover:bg-surface-container transition-colors">
-              <User className="w-4 h-4" /> Accedi
+              <User className="w-4 h-4" /> Log In
             </Link>
           )}
         </div>

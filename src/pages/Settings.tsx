@@ -39,10 +39,10 @@ export default function Settings() {
     return (
       <div className="p-8 flex flex-col items-center justify-center text-center min-h-[60vh]">
         <User className="w-10 h-10 text-secondary mb-4" />
-        <h1 className="text-2xl font-headline font-bold mb-2">Accesso richiesto</h1>
-        <p className="text-secondary text-sm mb-5">Effettua il login per vedere le impostazioni.</p>
+        <h1 className="text-2xl font-headline font-bold mb-2">Login Required</h1>
+        <p className="text-secondary text-sm mb-5">Please log in to view your settings.</p>
         <Link to="/login" className="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors">
-          Accedi
+          Log In
         </Link>
       </div>
     );
@@ -51,13 +51,13 @@ export default function Settings() {
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-3xl">
       <div>
-        <h1 className="text-3xl font-headline font-bold mb-1">Impostazioni</h1>
-        <p className="text-secondary text-sm">Gestisci il tuo profilo e le tue misurazioni.</p>
+        <h1 className="text-3xl font-headline font-bold mb-1">Settings</h1>
+        <p className="text-secondary text-sm">Manage your profile and measurements.</p>
       </div>
 
       {/* Profile */}
       <section className="glass-panel ghost-border rounded-2xl p-6">
-        <h2 className="font-headline font-bold mb-5 flex items-center gap-2"><User className="w-5 h-5 text-primary" /> Profilo</h2>
+        <h2 className="font-headline font-bold mb-5 flex items-center gap-2"><User className="w-5 h-5 text-primary" /> Profile</h2>
         <div className="flex items-center gap-5">
           <div className="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center text-xl font-bold font-headline shrink-0">
             {currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}
@@ -76,11 +76,11 @@ export default function Settings() {
 
       {/* My entries */}
       <section className="glass-panel ghost-border rounded-2xl p-6">
-        <h2 className="font-headline font-bold mb-5 flex items-center gap-2"><Activity className="w-5 h-5 text-primary" /> Le mie misurazioni</h2>
-        {loading ? <p>Caricamento...</p> : myEntries.length === 0 ? (
+        <h2 className="font-headline font-bold mb-5 flex items-center gap-2"><Activity className="w-5 h-5 text-primary" /> My Measurements</h2>
+        {loading ? <p>Loading...</p> : myEntries.length === 0 ? (
           <div className="text-secondary text-sm text-center py-6">
-            <p className="mb-3">Non hai ancora aggiunto misurazioni.</p>
-            <Link to="/register" className="text-primary font-semibold hover:underline">Aggiungi la tua prima misurazione →</Link>
+            <p className="mb-3">You haven't added any measurements yet.</p>
+            <Link to="/register" className="text-primary font-semibold hover:underline">Add your first measurement →</Link>
           </div>
         ) : (
           <div className="space-y-3">
@@ -90,10 +90,10 @@ export default function Settings() {
                   <div className="flex items-center gap-2">
                     <div className="font-semibold text-sm">{e.oem} {e.model} ({e.year})</div>
                     {e.needsUpdate && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" title="Sono disponibili nuovi campi tecnici per migliorare la precisione di questa misurazione."></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" title="New technical fields are available to improve the accuracy of this measurement."></div>
                     )}
                   </div>
-                  <div className="text-xs text-secondary mt-0.5">{e.mileage.toLocaleString('it-IT')} km · {e.region} · {new Date(e.date).toLocaleDateString('it-IT')}</div>
+                  <div className="text-xs text-secondary mt-0.5">{e.mileage.toLocaleString('en-US')} km · {e.region} · {new Date(e.date).toLocaleDateString('en-US')}</div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <SohBadge soh={e.soh} />
@@ -105,7 +105,7 @@ export default function Settings() {
         )}
         <div className="mt-4">
           <Link to="/register" className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors">
-            + Aggiungi misurazione
+            + Add Measurement
           </Link>
         </div>
       </section>
@@ -113,9 +113,9 @@ export default function Settings() {
       {/* Admin quick link */}
       {isAdmin && (
         <section className="glass-panel ghost-border rounded-2xl p-6">
-          <h2 className="font-headline font-bold mb-3 flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /> Pannello Admin</h2>
+          <h2 className="font-headline font-bold mb-3 flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /> Admin Panel</h2>
           <Link to="/moderation" className="inline-flex items-center gap-2 px-4 py-2.5 ghost-border bg-surface-container rounded-xl text-sm font-medium hover:bg-surface-container-high transition-colors">
-            Vai alla moderazione →
+            Go to Moderation →
           </Link>
         </section>
       )}
@@ -126,7 +126,7 @@ export default function Settings() {
           onClick={logout}
           className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
         >
-          <LogOut className="w-4 h-4" /> Disconnetti
+          <LogOut className="w-4 h-4" /> Log Out
         </button>
       </section>
     </div>

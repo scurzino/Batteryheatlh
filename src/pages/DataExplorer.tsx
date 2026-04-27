@@ -76,50 +76,50 @@ export default function DataExplorer() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-headline font-bold mb-1">Data Explorer</h1>
-          <p className="text-secondary text-sm">Analisi avanzata e filtraggio del dataset SOH.</p>
+          <p className="text-secondary text-sm">Advanced analysis and filtering of the SOH dataset.</p>
         </div>
       </div>
 
-      {loading ? <p>Caricamento dati...</p> : (
+      {loading ? <p>Loading data...</p> : (
         <>
           {/* Filters */}
           <div className="glass-panel ghost-border rounded-2xl p-5 flex flex-wrap gap-4">
             <div>
               <label className="block text-xs font-semibold text-secondary mb-1">OEM</label>
               <select value={filterOem} onChange={(e) => setFilterOem(e.target.value)} className={SELECT}>
-                <option value="">Tutti</option>
+                <option value="">All</option>
                 {OEMS.map((o) => <option key={o}>{o}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-1">Regione</label>
+              <label className="block text-xs font-semibold text-secondary mb-1">Region</label>
               <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} className={SELECT}>
-                <option value="">Tutte</option>
+                <option value="">All</option>
                 {COUNTRIES.map((r) => <option key={r}>{r}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-1">Utilizzo</label>
+              <label className="block text-xs font-semibold text-secondary mb-1">Usage</label>
               <select value={filterUsage} onChange={(e) => setFilterUsage(e.target.value)} className={SELECT}>
-                <option value="">Tutti</option>
+                <option value="">All</option>
                 {USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-1">Ricarica</label>
+              <label className="block text-xs font-semibold text-secondary mb-1">Charging</label>
               <select value={filterCharge} onChange={(e) => setFilterCharge(e.target.value)} className={SELECT}>
-                <option value="">Tutte</option>
+                <option value="">All</option>
                 {CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-1">Stato</label>
+              <label className="block text-xs font-semibold text-secondary mb-1">Status</label>
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={SELECT}>
-                <option value="">Tutti</option>
-                <option value="APPROVED">Approvato</option>
-                <option value="PENDING">In Revisione</option>
-                <option value="FLAGGED_BY_SYSTEM">Segnalato (AI)</option>
-                <option value="REJECTED">Rifiutato</option>
+                <option value="">All</option>
+                <option value="APPROVED">Approved</option>
+                <option value="PENDING">Under Review</option>
+                <option value="FLAGGED_BY_SYSTEM">Flagged (AI)</option>
+                <option value="REJECTED">Rejected</option>
               </select>
             </div>
           </div>
@@ -127,17 +127,17 @@ export default function DataExplorer() {
           {/* Table */}
           <div className="glass-panel ghost-border rounded-2xl overflow-hidden">
             <div className="px-5 py-3 border-b ghost-border flex items-center justify-between">
-              <span className="text-sm font-semibold text-secondary">{filtered.length} risultati</span>
+              <span className="text-sm font-semibold text-secondary">{filtered.length} results</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b ghost-border text-xs font-semibold text-secondary uppercase tracking-wide">
                     {([
-                      ['oem', 'OEM'], ['model', 'Modello'], ['year', 'Anno'],
+                      ['oem', 'OEM'], ['model', 'Model'], ['year', 'Year'],
                       ['soh', 'SOH %'], ['mileage', 'Km'],
-                      ['region', 'Regione'], ['usage', 'Utilizzo'], ['charge', 'Ricarica'],
-                      ['method', 'Metodo'], ['date', 'Data'], ['status', 'Stato'],
+                      ['region', 'Region'], ['usage', 'Usage'], ['charge', 'Charging'],
+                      ['method', 'Method'], ['date', 'Date'], ['status', 'Status'],
                     ] as [string, string][]).map(([field, label]) => {
                       const sortable: SortField[] = ['oem', 'model', 'year', 'soh', 'mileage', 'date'];
                       const sf = field as SortField;
@@ -161,22 +161,22 @@ export default function DataExplorer() {
                       <td className="px-4 py-3">{e.model}</td>
                       <td className="px-4 py-3">{e.year}</td>
                       <td className="px-4 py-3"><SohBadge soh={e.soh} /></td>
-                      <td className="px-4 py-3 font-mono text-xs">{e.mileage.toLocaleString('it-IT')}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{e.mileage.toLocaleString('en-US')}</td>
                       <td className="px-4 py-3">{e.region}</td>
                       <td className="px-4 py-3">{e.usageType}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{e.chargeType}</td>
                       <td className="px-4 py-3 text-xs text-secondary">{e.measurementMethod}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{new Date(e.date).toLocaleDateString('it-IT')}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{new Date(e.date).toLocaleDateString('en-US')}</td>
                       <td className="px-4 py-3"><StatusBadge status={e.status} /></td>
                       <td className="px-4 py-3">
-                        <Link to={`/vehicle/${e.id}`} className="text-primary text-xs font-semibold hover:underline">Dettagli</Link>
+                        <Link to={`/vehicle/${e.id}`} className="text-primary text-xs font-semibold hover:underline">Details</Link>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {filtered.length === 0 && (
-                <div className="p-12 text-center text-secondary">Nessun risultato con i filtri selezionati.</div>
+                <div className="p-12 text-center text-secondary">No results found with the selected filters.</div>
               )}
             </div>
           </div>

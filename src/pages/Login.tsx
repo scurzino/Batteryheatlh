@@ -17,19 +17,17 @@ export default function Login() {
         return null;
     }
 
-    function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError('');
         setLoading(true);
-        setTimeout(() => {
-            const result = login(email, password);
-            if (result.success) {
-                navigate('/');
-            } else {
-                setError(result.error ?? 'Errore sconosciuto');
-                setLoading(false);
-            }
-        }, 600);
+        const result = await login(email, password);
+        if (result.success) {
+            navigate('/');
+        } else {
+            setError(result.error ?? 'Unknown error');
+            setLoading(false);
+        }
     }
 
     return (
@@ -42,8 +40,8 @@ export default function Login() {
                 </div>
 
                 <div className="glass-panel ghost-border rounded-2xl p-8">
-                    <h1 className="text-2xl font-headline font-bold text-center mb-1">Bentornato</h1>
-                    <p className="text-center text-secondary text-sm mb-8">Accedi al tuo account EV-SOH</p>
+                    <h1 className="text-2xl font-headline font-bold text-center mb-1">Welcome Back</h1>
+                    <p className="text-center text-secondary text-sm mb-8">Sign in to your EV-SOH account</p>
 
                     {error && (
                         <div className="mb-4 px-4 py-3 bg-error-container text-on-error-container rounded-xl text-sm font-medium">
@@ -57,7 +55,7 @@ export default function Login() {
                             <input
                                 id="email" type="email" required autoComplete="email"
                                 value={email} onChange={(e) => setEmail(e.target.value)}
-                                placeholder="mario@example.it"
+                                placeholder="john@example.com"
                                 className="w-full px-4 py-3 rounded-xl bg-surface-container-lowest ghost-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                             />
                         </div>
@@ -86,13 +84,13 @@ export default function Login() {
                             disabled={loading}
                             className="mt-2 w-full flex items-center justify-center gap-2 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60"
                         >
-                            {loading ? 'Accesso in corso…' : <>Accedi <ArrowRight className="w-4 h-4" /></>}
+                            {loading ? 'Signing in…' : <>Sign In <ArrowRight className="w-4 h-4" /></>}
                         </button>
                     </form>
 
                     <div className="mt-6 pt-5 border-t ghost-border text-center text-sm text-secondary">
-                        Non hai un account?{' '}
-                        <Link to="/signup" className="text-primary font-semibold hover:underline">Registrati</Link>
+                        Don't have an account?{' '}
+                        <Link to="/signup" className="text-primary font-semibold hover:underline">Sign Up</Link>
                     </div>
 
                 </div>

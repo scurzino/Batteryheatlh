@@ -6,10 +6,10 @@ import { apiFetch } from '../utils/api';
 import { OEMS, COUNTRIES, USAGE_TYPES, CHARGE_TYPES, MEASUREMENT_METHODS, UsageType, ChargeType, MeasurementMethod } from '../data/mockData';
 
 const STEPS = [
-  { label: 'Veicolo', icon: Car },
-  { label: 'Utilizzo', icon: MapPin },
+  { label: 'Vehicle', icon: Car },
+  { label: 'Usage', icon: MapPin },
   { label: 'SOH', icon: Activity },
-  { label: 'Conferma', icon: CheckCircle },
+  { label: 'Confirm', icon: CheckCircle },
 ];
 
 const BATTERY_SUGGESTIONS: Record<string, string[]> = {
@@ -58,7 +58,6 @@ export default function Register() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // From API response
   const [resultStatus, setResultStatus] = useState<string>('APPROVED');
 
   function set(field: keyof FormData, value: string) {
@@ -107,7 +106,7 @@ export default function Register() {
       setResultStatus(res.entry.status);
       setSubmitted(true);
     } catch (err) {
-      alert("Errore durante l'invio");
+      alert('Error submitting data');
       console.error(err);
     } finally {
       setIsSubmitting(false);
@@ -117,15 +116,14 @@ export default function Register() {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-        {/* Same login blocker design as before ... */}
         <div className="w-full max-w-md glass-panel ghost-border rounded-2xl p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-primary-container flex items-center justify-center mx-auto mb-5">
             <Activity className="w-7 h-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-headline font-bold mb-2">Accesso richiesto</h1>
-          <p className="text-secondary text-sm mb-6">Per aggiungere una misurazione devi essere autenticato.</p>
+          <h1 className="text-2xl font-headline font-bold mb-2">Login Required</h1>
+          <p className="text-secondary text-sm mb-6">You must be logged in to add a measurement.</p>
           <Link to="/login" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary/90 transition-colors">
-            Accedi <ArrowRight className="w-4 h-4" />
+            Log In <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>
@@ -140,16 +138,16 @@ export default function Register() {
             <CheckCircle className={`w-7 h-7 ${resultStatus === 'APPROVED' ? 'text-emerald-600' : 'text-amber-600'}`} />
           </div>
           <h1 className="text-2xl font-headline font-bold mb-2">
-            {resultStatus === 'APPROVED' ? 'Misurazione inviata!' : 'In attesa di revisione (Anomalia)'}
+            {resultStatus === 'APPROVED' ? 'Measurement Submitted!' : 'Under Review (Anomaly Detected)'}
           </h1>
           <p className="text-secondary text-sm mb-6">
             {resultStatus === 'APPROVED'
-              ? 'La tua misurazione è stata validata dal backend e apparirà nel database.'
-              : 'Il valore rilevato si discosta significativamente dal modello esponenziale del backend. Inviato per moderazione.'}
+              ? 'Your measurement has been validated by the backend and will appear in the database.'
+              : 'The reported value deviates significantly from the backend exponential model. Submitted for moderation.'}
           </p>
           <div className="flex gap-3 justify-center">
             <Link to="/" className="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold text-sm">
-              Torna all'Esplora
+              Back to Explore
             </Link>
           </div>
         </div>
@@ -165,74 +163,73 @@ export default function Register() {
         </div>
 
         <div className="glass-panel ghost-border rounded-2xl p-8">
-          {/* Content from before... step logic */}
           {step === 0 && (
             <div className="space-y-5">
-              <div className="mb-6"><h2 className="text-xl font-bold">Dati del veicolo</h2></div>
-              <Field label="Costruttore (OEM)">
+              <div className="mb-6"><h2 className="text-xl font-bold">Vehicle Data</h2></div>
+              <Field label="Manufacturer (OEM)">
                 <select value={form.oem} onChange={(e) => set('oem', e.target.value)} className={SELECT}>
-                  <option value="">Seleziona...</option>{OEMS.map((o) => <option key={o}>{o}</option>)}
+                  <option value="">Select...</option>{OEMS.map((o) => <option key={o}>{o}</option>)}
                 </select>
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Modello"><input value={form.model} onChange={(e) => set('model', e.target.value)} className={INPUT} /></Field>
-                <Field label="Anno"><input type="number" value={form.year} onChange={(e) => set('year', e.target.value)} className={INPUT} /></Field>
+                <Field label="Model"><input value={form.model} onChange={(e) => set('model', e.target.value)} className={INPUT} /></Field>
+                <Field label="Year"><input type="number" value={form.year} onChange={(e) => set('year', e.target.value)} className={INPUT} /></Field>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Modello batteria"><input value={form.batteryModel} onChange={(e) => set('batteryModel', e.target.value)} className={INPUT} placeholder="es. LFP 60kWh" /></Field>
+                <Field label="Battery Model"><input value={form.batteryModel} onChange={(e) => set('batteryModel', e.target.value)} className={INPUT} placeholder="e.g. LFP 60kWh" /></Field>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Capacità Lorda (kWh) - Opzionale"><input type="number" step="0.1" value={form.grossCapacity} onChange={(e) => set('grossCapacity', e.target.value)} className={INPUT} placeholder="77.4" /></Field>
-                <Field label="Capacità Netta (kWh) - Opzionale"><input type="number" step="0.1" value={form.netCapacity} onChange={(e) => set('netCapacity', e.target.value)} className={INPUT} placeholder="74.0" /></Field>
+                <Field label="Gross Capacity (kWh) - Optional"><input type="number" step="0.1" value={form.grossCapacity} onChange={(e) => set('grossCapacity', e.target.value)} className={INPUT} placeholder="77.4" /></Field>
+                <Field label="Net Capacity (kWh) - Optional"><input type="number" step="0.1" value={form.netCapacity} onChange={(e) => set('netCapacity', e.target.value)} className={INPUT} placeholder="74.0" /></Field>
               </div>
             </div>
           )}
 
           {step === 1 && (
             <div className="space-y-5">
-              <div className="mb-6"><h2 className="text-xl font-bold">Utilizzo Ambientale</h2></div>
-              <Field label="Stato di utilizzo prevalente">
+              <div className="mb-6"><h2 className="text-xl font-bold">Environmental Usage</h2></div>
+              <Field label="Primary Usage Country">
                 <select value={form.region} onChange={(e) => set('region', e.target.value)} className={SELECT}>
-                  <option value="">Seleziona Stato...</option>{COUNTRIES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  <option value="">Select Country...</option>{COUNTRIES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Temp. Min. Media (°C)"><input type="number" value={form.minEnvTemp} onChange={(e) => set('minEnvTemp', e.target.value)} className={INPUT} placeholder="-5" /></Field>
-                <Field label="Temp. Max. Media (°C)"><input type="number" value={form.maxEnvTemp} onChange={(e) => set('maxEnvTemp', e.target.value)} className={INPUT} placeholder="35" /></Field>
+                <Field label="Avg. Min Temp (°C)"><input type="number" value={form.minEnvTemp} onChange={(e) => set('minEnvTemp', e.target.value)} className={INPUT} placeholder="-5" /></Field>
+                <Field label="Avg. Max Temp (°C)"><input type="number" value={form.maxEnvTemp} onChange={(e) => set('maxEnvTemp', e.target.value)} className={INPUT} placeholder="35" /></Field>
               </div>
-              <Field label="Utilizzo"><select value={form.usageType} onChange={(e) => set('usageType', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
-              <Field label="Ricarica"><select value={form.chargeType} onChange={(e) => set('chargeType', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
+              <Field label="Usage Type"><select value={form.usageType} onChange={(e) => set('usageType', e.target.value as any)} className={SELECT}><option value="">Select...</option>{USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
+              <Field label="Charging"><select value={form.chargeType} onChange={(e) => set('chargeType', e.target.value as any)} className={SELECT}><option value="">Select...</option>{CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
             </div>
           )}
 
           {step === 2 && (
             <div className="space-y-5">
-              <div className="mb-6"><h2 className="text-xl font-bold">Misurazione</h2></div>
+              <div className="mb-6"><h2 className="text-xl font-bold">Measurement</h2></div>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="SOH (%)"><input type="number" step="0.1" value={form.soh} onChange={(e) => set('soh', e.target.value)} className={INPUT} /></Field>
-                <Field label="Temperatura di misurazione (°C) - Opzionale"><input type="number" step="0.1" value={form.measurementTemp} onChange={(e) => set('measurementTemp', e.target.value)} className={INPUT} placeholder="20" /></Field>
+                <Field label="Measurement Temp (°C) - Optional"><input type="number" step="0.1" value={form.measurementTemp} onChange={(e) => set('measurementTemp', e.target.value)} className={INPUT} placeholder="20" /></Field>
               </div>
-              <Field label="Km"><input type="number" value={form.mileage} onChange={(e) => set('mileage', e.target.value)} className={INPUT} /></Field>
+              <Field label="Mileage (km)"><input type="number" value={form.mileage} onChange={(e) => set('mileage', e.target.value)} className={INPUT} /></Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Data"><input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className={INPUT} /></Field>
-                <Field label="Metodo"><select value={form.measurementMethod} onChange={(e) => set('measurementMethod', e.target.value as any)} className={SELECT}><option value="">Seleziona...</option>{MEASUREMENT_METHODS.map((m) => <option key={m}>{m}</option>)}</select></Field>
+                <Field label="Date"><input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className={INPUT} /></Field>
+                <Field label="Method"><select value={form.measurementMethod} onChange={(e) => set('measurementMethod', e.target.value as any)} className={SELECT}><option value="">Select...</option>{MEASUREMENT_METHODS.map((m) => <option key={m}>{m}</option>)}</select></Field>
               </div>
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-5">
-              <div className="mb-6"><h2 className="text-xl font-bold">Conferma l'invio</h2></div>
-              <p className="text-sm pb-4">Cliccando su Invia, i dati passeranno per il nostro validatore matematico eseguto in background (Backend API).</p>
+              <div className="mb-6"><h2 className="text-xl font-bold">Confirm Submission</h2></div>
+              <p className="text-sm pb-4">By clicking Submit, your data will be processed through our mathematical validator running on the backend (Backend API).</p>
             </div>
           )}
 
           <div className="mt-8 flex justify-between">
-            {step > 0 ? <button onClick={() => setStep(step - 1)} className="px-5 py-2.5 ghost-border rounded-xl">Indietro</button> : <div />}
+            {step > 0 ? <button onClick={() => setStep(step - 1)} className="px-5 py-2.5 ghost-border rounded-xl">Back</button> : <div />}
             {step < 3 ? (
-              <button disabled={!canAdvance()} onClick={handleNext} className="px-5 py-2.5 bg-primary text-white rounded-xl">Avanti</button>
+              <button disabled={!canAdvance()} onClick={handleNext} className="px-5 py-2.5 bg-primary text-white rounded-xl">Next</button>
             ) : (
-              <button disabled={isSubmitting} onClick={handleSubmit} className="px-5 py-2.5 bg-primary text-white rounded-xl">{isSubmitting ? 'Invio...' : 'Invia al server'}</button>
+              <button disabled={isSubmitting} onClick={handleSubmit} className="px-5 py-2.5 bg-primary text-white rounded-xl">{isSubmitting ? 'Submitting...' : 'Submit to Server'}</button>
             )}
           </div>
         </div>

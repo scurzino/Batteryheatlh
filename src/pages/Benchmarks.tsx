@@ -6,7 +6,7 @@ import {
 import { OEMS } from '../data/mockData';
 import { apiFetch } from '../utils/api';
 
-const TABS = ['Per Modello', 'Mileage vs SOH', 'Per Regione', 'Per Tipo Ricarica'];
+const TABS = ['By Model', 'Mileage vs SOH', 'By Region', 'By Charge Type'];
 
 const OEM_COLORS: Record<string, string> = {
   Tesla: '#e31937', Volkswagen: '#1d4ed8', Hyundai: '#0e4da4',
@@ -88,10 +88,10 @@ export default function Benchmarks() {
     <div className="p-6 md:p-8 space-y-6">
       <div>
         <h1 className="text-3xl font-headline font-bold mb-1">Benchmarks</h1>
-        <p className="text-secondary text-sm">Confronta le performance SOH per modello, regione e modalità d'uso.</p>
+        <p className="text-secondary text-sm">Compare SOH performance by model, region, and usage mode.</p>
       </div>
 
-      {loading ? <p>Elaborazione Big Data in corso dal server...</p> : (
+      {loading ? <p>Processing data from server...</p> : (
         <>
           <div className="flex border-b ghost-border gap-1 overflow-x-auto">
             {TABS.map((tab, i) => (
@@ -104,16 +104,16 @@ export default function Benchmarks() {
 
           {activeTab === 0 && (
             <div className="glass-panel ghost-border rounded-2xl p-6">
-              <h2 className="font-headline font-bold text-lg mb-1">SOH medio per modello</h2>
-              <p className="text-sm text-secondary mb-6">Calcolato su {approved.length} misurazioni approvate.</p>
+              <h2 className="font-headline font-bold text-lg mb-1">Average SOH by Model</h2>
+              <p className="text-sm text-secondary mb-6">Calculated from {approved.length} approved measurements.</p>
               <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={byModel} layout="vertical" margin={{ left: 130, right: 40, top: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-outline-variant)" opacity={0.4} />
                     <XAxis type="number" domain={[80, 102]} axisLine={false} tickLine={false} tick={{ fill: 'var(--color-secondary)', fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                     <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-on-surface)', fontSize: 11 }} width={130} />
-                    <Tooltip content={<CustomTooltip />} formatter={(v: number) => [`${v.toFixed(2)}%`, 'SOH medio']} />
-                    <Bar dataKey="avgSoh" name="SOH medio" radius={[0, 6, 6, 0]} barSize={18}>
+                    <Tooltip content={<CustomTooltip />} formatter={(v: number) => [`${v.toFixed(2)}%`, 'Avg SOH']} />
+                    <Bar dataKey="avgSoh" name="Avg SOH" radius={[0, 6, 6, 0]} barSize={18}>
                       {byModel.map((entry, i) => (
                         <Cell key={i} fill={oemColor(entry.oem)} fillOpacity={0.85} />
                       ))}
@@ -129,10 +129,10 @@ export default function Benchmarks() {
             <div className="glass-panel ghost-border rounded-2xl p-6">
               <div className="flex justify-between items-start mb-5">
                 <div>
-                  <h2 className="font-headline font-bold text-lg mb-1">Chilometraggio vs SOH</h2>
+                  <h2 className="font-headline font-bold text-lg mb-1">Mileage vs SOH</h2>
                 </div>
                 <select value={scatterOem} onChange={(e) => setScatterOem(e.target.value)} className="px-3 py-2 rounded-lg ghost-border bg-surface-container-lowest text-sm focus:outline-none">
-                  <option value="">Tutti gli OEM</option>
+                  <option value="">All OEMs</option>
                   {OEMS.map((o) => <option key={o}>{o}</option>)}
                 </select>
               </div>
@@ -166,7 +166,7 @@ export default function Benchmarks() {
 
           {activeTab === 2 && (
             <div className="glass-panel ghost-border rounded-2xl p-6">
-              <h2 className="font-headline font-bold text-lg mb-1">SOH medio per regione</h2>
+              <h2 className="font-headline font-bold text-lg mb-1">Average SOH by Region</h2>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={byRegion} layout="vertical" margin={{ left: 130, right: 40, top: 5, bottom: 5 }}>
@@ -174,7 +174,7 @@ export default function Benchmarks() {
                     <XAxis type="number" domain={[80, 102]} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                     <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={130} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="avgSoh" fill="var(--color-primary)" radius={[0, 6, 6, 0]} barSize={16} name="SOH medio" />
+                    <Bar dataKey="avgSoh" fill="var(--color-primary)" radius={[0, 6, 6, 0]} barSize={16} name="Avg SOH" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -183,7 +183,7 @@ export default function Benchmarks() {
 
           {activeTab === 3 && (
             <div className="glass-panel ghost-border rounded-2xl p-6">
-              <h2 className="font-headline font-bold text-lg mb-1">SOH medio per tipo di ricarica</h2>
+              <h2 className="font-headline font-bold text-lg mb-1">Average SOH by Charge Type</h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={byCharge} margin={{ left: 20, right: 40, top: 10, bottom: 40 }}>
@@ -191,7 +191,7 @@ export default function Benchmarks() {
                     <XAxis dataKey="name" axisLine={false} tickLine={false} angle={-15} textAnchor="end" dy={10} />
                     <YAxis domain={[85, 100]} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="avgSoh" radius={[6, 6, 0, 0]} barSize={60} name="SOH medio">
+                    <Bar dataKey="avgSoh" radius={[6, 6, 0, 0]} barSize={60} name="Avg SOH">
                       {byCharge.map((_, i) => (
                         <Cell key={i} fill={i === 0 ? '#0ea5e9' : i === 1 ? '#f59e0b' : '#6366f1'} />
                       ))}
