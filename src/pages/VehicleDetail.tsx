@@ -26,10 +26,10 @@ export default function VehicleDetail() {
 
   const METHOD_COLORS: Record<string, string> = {
     'OBD2 Dongle': '#3b82f6',
-    'Dati ricarica (API)': '#10b981',
+    'Charge Data (API)': '#10b981',
     'SoC Check': '#8b5cf6',
-    'Certificato OEM': '#f59e0b',
-    'Altro': '#64748b'
+    'OEM Certificate': '#f59e0b',
+    'Other': '#64748b'
   };
 
   const [entry, setEntry] = useState<any>(null);
@@ -475,7 +475,7 @@ export default function VehicleDetail() {
                   <option value="">No mid-trip charging</option>
                   <option value="AC">Slow Charge (AC)</option>
                   <option value="DC">Fast Charge (DC)</option>
-                  <option value="Misto">Mixed AC/DC</option>
+                  <option value="Mixed">Mixed AC/DC</option>
                 </select>
                 <input type="date" required value={tripForm.date} onChange={e => setTripForm({ ...tripForm, date: e.target.value })} className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none" />
                 <button type="submit" disabled={isSubmittingTrip} className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold mt-2 hover:bg-primary/90 transition-colors disabled:opacity-50">{isSubmittingTrip ? 'Saving...' : 'Save Trip'}</button>
@@ -601,10 +601,10 @@ export default function VehicleDetail() {
               <select value={addSohForm.measurementMethod} onChange={(e) => setAddSohForm({ ...addSohForm, measurementMethod: e.target.value })}
                 className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20">
                 <option value="OBD2 Dongle">OBD2 Dongle</option>
-                <option value="Dati ricarica (API)">Dati ricarica (API)</option>
+                <option value="Charge Data (API)">Charge Data (API)</option>
                 <option value="SoC Check">SoC Check</option>
-                <option value="Certificato OEM">Certificato OEM</option>
-                <option value="Altro">Altro</option>
+                <option value="OEM Certificate">OEM Certificate</option>
+                <option value="Other">Other</option>
               </select>
             </div>
             <div>

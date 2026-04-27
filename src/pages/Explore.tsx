@@ -7,13 +7,13 @@ import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 
 const CHARGE_ICON: Record<string, string> = {
-  'Prevalentemente AC': '🔌',
-  'Prevalentemente DC': '⚡',
-  'Misto AC/DC': '↔️',
+  'Mostly AC': '🔌',
+  'Mostly DC': '⚡',
+  'Mixed AC/DC': '↔️',
 };
 
 const USAGE_ICON: Record<string, string> = {
-  Urbano: '🏙️', Extraurbano: '🛣️', Misto: '🔄', Autostrada: '🚗',
+  Urban: '🏙️', Suburban: '🛣️', Mixed: '🔄', Highway: '🚗',
 };
 
 export default function Explore() {

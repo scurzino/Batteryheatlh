@@ -7,9 +7,9 @@ export interface BaseVehicle {
 
 // Region/countries are simple strings to support countries worldwide.
 
-export type UsageType = 'Urbano' | 'Extraurbano' | 'Misto' | 'Autostrada';
-export type ChargeType = 'Prevalentemente AC' | 'Prevalentemente DC' | 'Misto AC/DC';
-export type MeasurementMethod = 'OBD2 Dongle' | 'Dati ricarica (API)' | 'SoC Check' | 'Certificato OEM' | 'Altro';
+export type UsageType = 'Urban' | 'Suburban' | 'Mixed' | 'Highway';
+export type ChargeType = 'Mostly AC' | 'Mostly DC' | 'Mixed AC/DC';
+export type MeasurementMethod = 'OBD2 Dongle' | 'Charge Data (API)' | 'SoC Check' | 'OEM Certificate' | 'Other';
 export type EntryStatus = 'APPROVED' | 'PENDING' | 'FLAGGED_BY_SYSTEM' | 'REJECTED';
 
 export interface User {
@@ -66,24 +66,24 @@ export const COUNTRIES: string[] = [
 ];
 
 export const USAGE_TYPES: UsageType[] = [
-  'Urbano',
-  'Extraurbano',
-  'Misto',
-  'Autostrada',
+  'Urban',
+  'Suburban',
+  'Mixed',
+  'Highway',
 ];
 
 export const CHARGE_TYPES: ChargeType[] = [
-  'Prevalentemente AC',
-  'Prevalentemente DC',
-  'Misto AC/DC',
+  'Mostly AC',
+  'Mostly DC',
+  'Mixed AC/DC',
 ];
 
 export const MEASUREMENT_METHODS: MeasurementMethod[] = [
   'OBD2 Dongle',
-  'Dati ricarica (API)',
+  'Charge Data (API)',
   'SoC Check',
-  'Certificato OEM',
-  'Altro',
+  'OEM Certificate',
+  'Other',
 ];
 
 export const MOCK_USERS: User[] = [
