@@ -5,16 +5,11 @@ export interface BaseVehicle {
   batteryModel: string;
 }
 
-export type Region =
-  | 'Nord Italia'
-  | 'Centro Italia'
-  | 'Sud Italia'
-  | 'Isole'
-  | 'Urbano';
+// Region/countries are simple strings to support countries worldwide.
 
-export type UsageType = 'Urbano' | 'Extraurbano' | 'Misto' | 'Autostrada';
-export type ChargeType = 'Prevalentemente AC' | 'Prevalentemente DC' | 'Misto AC/DC';
-export type MeasurementMethod = 'OBD2 Dongle' | 'Dati ricarica (API)' | 'SoC Check' | 'Certificato OEM' | 'Altro';
+export type UsageType = 'Urban' | 'Suburban' | 'Mixed' | 'Highway';
+export type ChargeType = 'Mostly AC' | 'Mostly DC' | 'Mixed AC/DC';
+export type MeasurementMethod = 'OBD2 Dongle' | 'Charge Data (API)' | 'SoC Check' | 'OEM Certificate' | 'Other';
 export type EntryStatus = 'APPROVED' | 'PENDING' | 'FLAGGED_BY_SYSTEM' | 'REJECTED';
 
 export interface User {
@@ -30,22 +25,22 @@ export interface User {
 export interface FlatEntry extends BaseVehicle {
   id: string;
   userId: string;
-  vehicleId?: string; // Optional per retrocompatibilità backend/mock
+  vehicleId?: string;
   soh: number;
   mileage: number;
-  region: Region;
+  region: string;
   usageType: UsageType;
   chargeType: ChargeType;
   measurementMethod: MeasurementMethod;
-  date: string; // ISO string (es. "2025-10-01")
+  date: string; // ISO string (e.g. "2025-10-01")
   notes?: string;
   status: EntryStatus;
 
-  // Campi gestionali backend
+  // Backend management fields
   submittedAt?: string;
   userName?: string;
   flagReason?: string;
-  flaggedBy?: string; // User ID o 'system'
+  flaggedBy?: string; // User ID or 'system'
 }
 
 export const OEMS = [
@@ -63,32 +58,32 @@ export const OEMS = [
   'BYD',
 ] as const;
 
-export const REGIONS: Region[] = [
-  'Nord Italia',
-  'Centro Italia',
-  'Sud Italia',
-  'Isole',
+export const COUNTRIES: string[] = [
+  'Italy', 'France', 'Germany', 'United Kingdom', 'Spain', 'Netherlands', 'Belgium', 'Switzerland', 'Austria',
+  'Norway', 'Sweden', 'Denmark', 'Finland', 'Poland', 'Portugal', 'Greece', 'Ireland',
+  'United States', 'Canada', 'Australia', 'New Zealand', 'Japan', 'South Korea', 'China',
+  'United Arab Emirates', 'Other'
 ];
 
 export const USAGE_TYPES: UsageType[] = [
-  'Urbano',
-  'Extraurbano',
-  'Misto',
-  'Autostrada',
+  'Urban',
+  'Suburban',
+  'Mixed',
+  'Highway',
 ];
 
 export const CHARGE_TYPES: ChargeType[] = [
-  'Prevalentemente AC',
-  'Prevalentemente DC',
-  'Misto AC/DC',
+  'Mostly AC',
+  'Mostly DC',
+  'Mixed AC/DC',
 ];
 
 export const MEASUREMENT_METHODS: MeasurementMethod[] = [
   'OBD2 Dongle',
-  'Dati ricarica (API)',
+  'Charge Data (API)',
   'SoC Check',
-  'Certificato OEM',
-  'Altro',
+  'OEM Certificate',
+  'Other',
 ];
 
 export const MOCK_USERS: User[] = [

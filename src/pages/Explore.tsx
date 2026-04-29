@@ -1,19 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, ArrowRight, Battery, Gauge, MapPin, Zap, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { OEMS, REGIONS, USAGE_TYPES, CHARGE_TYPES, FlatEntry } from '../data/mockData';
+import { OEMS, COUNTRIES, USAGE_TYPES, CHARGE_TYPES, FlatEntry } from '../data/mockData';
 import { StatusBadge, SohBadge, TagBadge } from '../components/ui/Badge';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 
 const CHARGE_ICON: Record<string, string> = {
-  'Prevalentemente AC': '🔌',
-  'Prevalentemente DC': '⚡',
-  'Misto AC/DC': '↔️',
+  'Mostly AC': '🔌',
+  'Mostly DC': '⚡',
+  'Mixed AC/DC': '↔️',
 };
 
 const USAGE_ICON: Record<string, string> = {
-  Urbano: '🏙️', Extraurbano: '🛣️', Misto: '🔄', Autostrada: '🚗',
+  Urban: '🏙️', Suburban: '🛣️', Mixed: '🔄', Highway: '🚗',
 };
 
 export default function Explore() {
@@ -33,7 +33,6 @@ export default function Explore() {
   useEffect(() => {
     apiFetch('/soh/explore')
       .then(data => {
-        // Map the backend DB objects to the expected FlatEntry shape for frontend
         const shaped = data.map((e: any) => ({
           id: e.id,
           oem: e.vehicle.oem,
@@ -91,27 +90,27 @@ export default function Explore() {
       {/* Header */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-headline font-bold mb-2">Esplora Dataset</h1>
-          <p className="text-secondary">Misurazioni SOH condivise dalla community su veicoli elettrici reali.</p>
+          <h1 className="text-3xl md:text-4xl font-headline font-bold mb-2">Explore Dataset</h1>
+          <p className="text-secondary">Community-shared SOH measurements on real electric vehicles.</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             to="/register"
             className="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2"
           >
-            <Zap className="w-4 h-4" /> Aggiungi misurazione
+            <Zap className="w-4 h-4" /> Add Measurement
           </Link>
         </div>
       </section>
 
       {/* Stats */}
-      {isLoading ? <p>Caricamento dati in corso...</p> : (
+      {isLoading ? <p>Loading data...</p> : (
         <>
           <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Misurazioni totali', value: entries.length.toString(), sub: `${approved.length} approvate` },
-              { label: 'SOH medio', value: `${avgSoh.toFixed(1)}%`, sub: 'su misurazioni approvate' },
-              { label: 'In revisione', value: pendingCount.toString(), sub: 'attesa moderatore' },
+              { label: 'Total Measurements', value: entries.length.toString(), sub: `${approved.length} approved` },
+              { label: 'Average SOH', value: `${avgSoh.toFixed(1)}%`, sub: 'across approved measurements' },
+              { label: 'Under Review', value: pendingCount.toString(), sub: 'awaiting moderator' },
             ].map((stat, i) => (
               <div key={i} className="glass-panel ghost-border rounded-2xl p-5 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-28 h-28 bg-primary/5 rounded-full blur-3xl -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-700" />
@@ -129,7 +128,7 @@ export default function Explore() {
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
                 <input
                   type="text"
-                  placeholder="Cerca OEM, modello o regione…"
+                  placeholder="Search OEM, model or region…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 pr-4 py-2.5 rounded-xl ghost-border bg-surface-container-lowest text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
@@ -139,17 +138,17 @@ export default function Explore() {
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-4 py-2.5 ghost-border rounded-xl text-sm font-medium transition-colors ${showFilters ? 'bg-primary text-on-primary' : 'bg-surface-container-lowest hover:bg-surface-container'}`}
               >
-                <Filter className="w-4 h-4" /> Filtri {hasFilters && `(${[filterOem, filterRegion, filterUsage, filterCharge, filterMinSoh].filter(Boolean).length})`}
+                <Filter className="w-4 h-4" /> Filters {hasFilters && `(${[filterOem, filterRegion, filterUsage, filterCharge, filterMinSoh].filter(Boolean).length})`}
               </button>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                 className="px-4 py-2.5 ghost-border bg-surface-container-lowest rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
               >
-                <option value="date_desc">Più recenti</option>
-                <option value="soh_desc">SOH più alto</option>
-                <option value="soh_asc">SOH più basso</option>
-                <option value="mileage_desc">Km più alti</option>
+                <option value="date_desc">Most Recent</option>
+                <option value="soh_desc">Highest SOH</option>
+                <option value="soh_asc">Lowest SOH</option>
+                <option value="mileage_desc">Highest Mileage</option>
               </select>
             </div>
 
@@ -158,39 +157,39 @@ export default function Explore() {
                 <div>
                   <label className="block text-xs font-semibold text-secondary mb-1.5">OEM</label>
                   <select value={filterOem} onChange={(e) => setFilterOem(e.target.value)} className="w-full px-3 py-2 rounded-lg ghost-border bg-surface-container-lowest text-sm focus:outline-none">
-                    <option value="">Tutti</option>
+                    <option value="">All</option>
                     {OEMS.map((o) => <option key={o}>{o}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1.5">Regione</label>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Region</label>
                   <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} className="w-full px-3 py-2 rounded-lg ghost-border bg-surface-container-lowest text-sm focus:outline-none">
-                    <option value="">Tutte</option>
-                    {REGIONS.map((r) => <option key={r}>{r}</option>)}
+                    <option value="">All</option>
+                    {COUNTRIES.map((r) => <option key={r}>{r}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1.5">Utilizzo</label>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Usage</label>
                   <select value={filterUsage} onChange={(e) => setFilterUsage(e.target.value)} className="w-full px-3 py-2 rounded-lg ghost-border bg-surface-container-lowest text-sm focus:outline-none">
-                    <option value="">Tutti</option>
+                    <option value="">All</option>
                     {USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1.5">Ricarica</label>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Charging</label>
                   <select value={filterCharge} onChange={(e) => setFilterCharge(e.target.value)} className="w-full px-3 py-2 rounded-lg ghost-border bg-surface-container-lowest text-sm focus:outline-none">
-                    <option value="">Tutte</option>
+                    <option value="">All</option>
                     {CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1.5">SOH min. (%)</label>
-                  <input type="number" min="0" max="100" value={filterMinSoh} onChange={(e) => setFilterMinSoh(e.target.value)} placeholder="es. 90" className="w-full px-3 py-2 rounded-lg ghost-border bg-surface-container-lowest text-sm focus:outline-none" />
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Min SOH (%)</label>
+                  <input type="number" min="0" max="100" value={filterMinSoh} onChange={(e) => setFilterMinSoh(e.target.value)} placeholder="e.g. 90" className="w-full px-3 py-2 rounded-lg ghost-border bg-surface-container-lowest text-sm focus:outline-none" />
                 </div>
                 {hasFilters && (
                   <div className="col-span-full flex justify-end">
                     <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-secondary hover:text-on-surface font-medium">
-                      <X className="w-3 h-3" /> Rimuovi filtri
+                      <X className="w-3 h-3" /> Clear Filters
                     </button>
                   </div>
                 )}
@@ -202,13 +201,13 @@ export default function Explore() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-headline font-bold">
-                {visibleEntries.length} misurazion{visibleEntries.length === 1 ? 'e' : 'i'}
+                {visibleEntries.length} measurement{visibleEntries.length !== 1 ? 's' : ''}
               </h2>
             </div>
             {visibleEntries.length === 0 ? (
               <div className="glass-panel ghost-border rounded-2xl p-12 text-center text-secondary">
                 <Battery className="w-8 h-8 mx-auto mb-3 opacity-40" />
-                <p>Nessuna misurazione trovata con i filtri selezionati.</p>
+                <p>No measurements found with the selected filters.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -241,10 +240,10 @@ export default function Explore() {
                     <div className="flex items-center justify-between text-sm pt-1 border-t ghost-border">
                       <div className="flex items-center gap-3 text-secondary">
                         <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{entry.region}</span>
-                        <span className="flex items-center gap-1"><Gauge className="w-3.5 h-3.5" />{entry.mileage.toLocaleString('it-IT')} km</span>
+                        <span className="flex items-center gap-1"><Gauge className="w-3.5 h-3.5" />{entry.mileage.toLocaleString('en-US')} km</span>
                       </div>
                       <div className="flex items-center gap-1 text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-xs">Dettagli</span>
+                        <span className="text-xs">Details</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </div>
                     </div>

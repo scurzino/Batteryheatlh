@@ -1,5 +1,47 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from './index.js';
+
+// ── Zod Validation Schemas ──────────────────────────────────────────────
+
+const addEntrySchema = z.object({
+    oem: z.string().min(1),
+    model: z.string().min(1),
+    year: z.number().int().min(1990).max(2100),
+    batteryModel: z.string().min(1),
+    vehicleId: z.string().uuid().optional(),
+    grossCapacity: z.union([z.number(), z.string()]).optional(),
+    netCapacity: z.union([z.number(), z.string()]).optional(),
+    region: z.string().min(1),
+    usageType: z.string().min(1),
+    chargeType: z.string().min(1),
+    minEnvTemp: z.union([z.number(), z.string()]).optional(),
+    maxEnvTemp: z.union([z.number(), z.string()]).optional(),
+    soh: z.union([z.number(), z.string()]).refine(v => {
+        const n = typeof v === 'string' ? parseFloat(v) : v;
+        return n >= 0 && n <= 120;
+    }, { message: 'SOH must be between 0 and 120' }),
+    mileage: z.union([z.number(), z.string()]).refine(v => {
+        const n = typeof v === 'string' ? parseFloat(v) : v;
+        return n >= 0 && n <= 2_000_000;
+    }, { message: 'Mileage must be between 0 and 2,000,000' }),
+    measurementMethod: z.string().min(1),
+    measurementTemp: z.union([z.number(), z.string()]).optional(),
+    date: z.string().min(1),
+    notes: z.string().optional(),
+});
+
+const addTripSchema = z.object({
+    km: z.union([z.number(), z.string()]),
+    initialSoc: z.union([z.number(), z.string()]),
+    finalSoc: z.union([z.number(), z.string()]),
+    initialEnvTemp: z.union([z.number(), z.string()]),
+    finalEnvTemp: z.union([z.number(), z.string()]),
+    chargeType: z.string().optional(),
+    date: z.string().optional(),
+});
+
+// ── Regression Analysis ─────────────────────────────────────────────────
 
 interface RegressionResult {
     isOutlier: boolean;
@@ -69,24 +111,59 @@ async function checkRegression(
     return { isOutlier: zScore > 2, deviation, sigma, predicted, zScore };
 }
 
+// ── Route Handlers ──────────────────────────────────────────────────────
+
 export const SohHandlers = {
     async addEntry(req: Request, res: Response) {
         try {
-            const dbEntry = req.body;
-            const { oem, model, year, batteryModel, ...rest } = dbEntry;
+            // Validate input
+            const parsed = addEntrySchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({
+                    error: 'Invalid input',
+                    details: parsed.error.flatten().fieldErrors
+                });
+            }
+
+            const { oem, model, year, batteryModel, vehicleId, ...rest } = parsed.data;
 
             // 1. Get or create Vehicle
-            let vehicle = await prisma.vehicle.findFirst({
-                where: { oem, model, year, batteryModel }
-            });
+            let vehicle;
+            if (vehicleId) {
+                vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+            }
+
+            if (!vehicle) {
+                vehicle = await prisma.vehicle.findFirst({
+                    where: { oem, model, year, batteryModel }
+                });
+            }
             if (!vehicle) {
                 vehicle = await prisma.vehicle.create({
-                    data: { oem, model, year, batteryModel }
+                    data: {
+                        oem, model, year, batteryModel,
+                        grossCapacity: rest.grossCapacity ? parseFloat(String(rest.grossCapacity)) : undefined,
+                        netCapacity: rest.netCapacity ? parseFloat(String(rest.netCapacity)) : undefined,
+                        minEnvTemp: rest.minEnvTemp ? parseFloat(String(rest.minEnvTemp)) : undefined,
+                        maxEnvTemp: rest.maxEnvTemp ? parseFloat(String(rest.maxEnvTemp)) : undefined
+                    }
+                });
+            } else if (!vehicle.grossCapacity && rest.grossCapacity) {
+                vehicle = await prisma.vehicle.update({
+                    where: { id: vehicle.id },
+                    data: {
+                        grossCapacity: rest.grossCapacity ? parseFloat(String(rest.grossCapacity)) : undefined,
+                        netCapacity: rest.netCapacity ? parseFloat(String(rest.netCapacity)) : undefined,
+                        minEnvTemp: rest.minEnvTemp ? parseFloat(String(rest.minEnvTemp)) : undefined,
+                        maxEnvTemp: rest.maxEnvTemp ? parseFloat(String(rest.maxEnvTemp)) : undefined
+                    }
                 });
             }
 
             // 2. Regression Check Backend-side
-            const stats = await checkRegression({ oem, model, year, soh: rest.soh, mileage: rest.mileage });
+            const sohNumber = parseFloat(String(rest.soh));
+            const mileageNumber = parseFloat(String(rest.mileage));
+            const stats = await checkRegression({ oem, model, year, soh: sohNumber, mileage: mileageNumber });
 
             // 3. Mark logic
             const status = stats.isOutlier ? 'FLAGGED_BY_SYSTEM' : 'APPROVED';
@@ -94,15 +171,14 @@ export const SohHandlers = {
             const entry = await prisma.sohEntry.create({
                 data: {
                     vehicleId: vehicle.id,
-                    userId: (req as any).user?.id || null, // Optional if auth middleware not strictly applied
-                    soh: rest.soh,
-                    mileage: rest.mileage,
+                    userId: (req as any).user?.id || null,
+                    soh: sohNumber,
+                    mileage: mileageNumber,
                     region: rest.region,
                     usageType: rest.usageType,
                     chargeType: rest.chargeType,
                     measurementMethod: rest.measurementMethod,
-                    minEnvTemp: rest.minEnvTemp,
-                    maxEnvTemp: rest.maxEnvTemp,
+                    measurementTemp: rest.measurementTemp ? parseFloat(String(rest.measurementTemp)) : null,
                     date: new Date(rest.date),
                     notes: rest.notes,
                     status,
@@ -118,13 +194,24 @@ export const SohHandlers = {
 
     async getExplore(req: Request, res: Response) {
         try {
-            // Returns populated entries for Explorer
             const entries = await prisma.sohEntry.findMany({
-                include: { vehicle: true },
-                orderBy: { date: 'desc' }
+                orderBy: { date: 'desc' },
+                include: { vehicle: true }
             });
-            res.json(entries);
+
+            const uniqueVehicles: any[] = [];
+            const seen = new Set();
+
+            for (const e of entries) {
+                if (!seen.has(e.vehicleId)) {
+                    uniqueVehicles.push(e);
+                    seen.add(e.vehicleId);
+                }
+            }
+
+            res.json(uniqueVehicles);
         } catch (err) {
+            console.error(err);
             res.status(500).json({ error: 'Failed to get entries' });
         }
     },
@@ -174,18 +261,28 @@ export const SohHandlers = {
         try {
             const userId = (req as any).user?.id;
             if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-            
+
+            // Validate input
+            const parsed = addTripSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({
+                    error: 'Invalid input',
+                    details: parsed.error.flatten().fieldErrors
+                });
+            }
+
+            const data = parsed.data;
             const trip = await prisma.tripLog.create({
                 data: {
                     userId,
                     vehicleId: req.params.id,
-                    km: parseFloat(req.body.km),
-                    initialSoc: parseFloat(req.body.initialSoc),
-                    finalSoc: parseFloat(req.body.finalSoc),
-                    initialEnvTemp: parseFloat(req.body.initialEnvTemp),
-                    finalEnvTemp: parseFloat(req.body.finalEnvTemp),
-                    chargeType: req.body.chargeType,
-                    date: req.body.date ? new Date(req.body.date) : new Date()
+                    km: parseFloat(String(data.km)),
+                    initialSoc: parseFloat(String(data.initialSoc)),
+                    finalSoc: parseFloat(String(data.finalSoc)),
+                    initialEnvTemp: parseFloat(String(data.initialEnvTemp)),
+                    finalEnvTemp: parseFloat(String(data.finalEnvTemp)),
+                    chargeType: data.chargeType,
+                    date: data.date ? new Date(data.date) : new Date()
                 }
             });
             res.status(201).json(trip);
@@ -222,6 +319,64 @@ export const SohHandlers = {
             res.status(201).json(note);
         } catch (err) {
             res.status(500).json({ error: 'Failed to add note' });
+        }
+    },
+
+    async updateVehicleMetadata(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+            const vehicleId = req.params.id;
+
+            const userEntry = await prisma.sohEntry.findFirst({
+                where: { vehicleId, userId }
+            });
+
+            if (!userEntry) {
+                return res.status(403).json({ error: 'You do not own this vehicle record' });
+            }
+
+            const updated = await prisma.vehicle.update({
+                where: { id: vehicleId },
+                data: {
+                    grossCapacity: req.body.grossCapacity ? parseFloat(req.body.grossCapacity) : undefined,
+                    netCapacity: req.body.netCapacity ? parseFloat(req.body.netCapacity) : undefined,
+                    minEnvTemp: req.body.minEnvTemp ? parseFloat(req.body.minEnvTemp) : undefined,
+                    maxEnvTemp: req.body.maxEnvTemp ? parseFloat(req.body.maxEnvTemp) : undefined
+                }
+            });
+
+            res.json(updated);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to update vehicle metadata' });
+        }
+    },
+
+    async updateEntryMetadata(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+            const entryId = req.params.id;
+
+            const entry = await prisma.sohEntry.findUnique({ where: { id: entryId } });
+            if (!entry || entry.userId !== userId) {
+                return res.status(403).json({ error: 'Unauthorized update' });
+            }
+
+            const updated = await prisma.sohEntry.update({
+                where: { id: entryId },
+                data: {
+                    measurementTemp: req.body.measurementTemp ? parseFloat(req.body.measurementTemp) : undefined
+                }
+            });
+
+            res.json(updated);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to update entry metadata' });
         }
     }
 };

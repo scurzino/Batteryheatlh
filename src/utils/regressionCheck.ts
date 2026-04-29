@@ -55,7 +55,7 @@ export function getRegressionLine(
     if (!fit) return [];
 
     const { A, k } = fit;
-    // Calcoliamo la fine della curva (es. almeno 150.000 km, o il massimo dei peers + 20%)
+    // Calculate the end of the curve (at least 150,000 km, or max peer mileage + 20%)
     const maxPeer = Math.max(...peers.map((p) => p.mileage));
     const maxX = Math.max(maxPeer * 1.2, 150000);
     const step = maxX / (points - 1);

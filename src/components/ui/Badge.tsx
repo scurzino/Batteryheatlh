@@ -6,10 +6,10 @@ interface StatusBadgeProps {
 }
 
 const CONFIG: Record<string, { label: string; className: string }> = {
-    APPROVED: { label: 'Approvato', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-    PENDING: { label: 'In Revisione', className: 'bg-amber-100 text-amber-800 border-amber-200' },
-    FLAGGED_BY_SYSTEM: { label: 'Segnalato', className: 'bg-red-100 text-red-800 border-red-200' },
-    REJECTED: { label: 'Rifiutato', className: 'bg-surface-container-highest text-secondary border-outline-variant/30' },
+    APPROVED: { label: 'Approved', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+    PENDING: { label: 'Under Review', className: 'bg-amber-100 text-amber-800 border-amber-200' },
+    FLAGGED_BY_SYSTEM: { label: 'Flagged', className: 'bg-red-100 text-red-800 border-red-200' },
+    REJECTED: { label: 'Rejected', className: 'bg-surface-container-highest text-secondary border-outline-variant/30' },
 };
 
 export function StatusBadge({ status }: { status: string }) {

@@ -12,15 +12,27 @@ const app = express();
 const PORT = process.env.PORT || 3005;
 
 // 1. Security & Parsing Middlewares
-app.set('trust proxy', 1); // Respect Vercel's 'X-Forwarded-For' IP hiding
-app.use(helmet()); // Basic security headers
-app.use(cors({ origin: '*' })); // Should be restricted in production
-app.use(express.json()); // JSON body parser
+app.set('trust proxy', 1);
+app.use(helmet());
+
+// CORS: restrict to allowed origins in production
+const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+    : ['http://localhost:3000'];
+
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production'
+        ? allowedOrigins
+        : '*',
+    credentials: true,
+}));
+
+app.use(express.json());
 
 // 2. Global Rate Limiter (against basic DoS/bruteforce)
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: 'draft-8',
     legacyHeaders: false,
@@ -55,6 +67,8 @@ app.get('/api/soh/:id/trips', SohHandlers.getTripsByVehicle);
 app.post('/api/soh/:id/trips', authMiddleware, SohHandlers.addTrip);
 app.get('/api/soh/:id/notes', SohHandlers.getNotesByVehicle);
 app.post('/api/soh/:id/notes', authMiddleware, SohHandlers.addNote);
+app.put('/api/soh/vehicle/:id/metadata', authMiddleware, SohHandlers.updateVehicleMetadata);
+app.put('/api/soh/entry/:id/metadata', authMiddleware, SohHandlers.updateEntryMetadata);
 
 // Routes: Analytics
 app.get('/api/soh/analytics', AnalyticsHandlers.getBenchmarks);
