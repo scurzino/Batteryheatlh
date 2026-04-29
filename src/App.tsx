@@ -11,6 +11,7 @@ import Explore from './pages/Explore';
 import VehicleDetail from './pages/VehicleDetail';
 import DataExplorer from './pages/DataExplorer';
 import Benchmarks from './pages/Benchmarks';
+import PredictiveModel from './pages/PredictiveModel';
 import Settings from './pages/Settings';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/vehicle/:id" element={<VehicleDetail />} />
             <Route path="/explorer" element={<DataExplorer />} />
             <Route path="/benchmarks" element={<Benchmarks />} />
+            <Route path="/predictive-model" element={<PredictiveModel />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/moderation" element={<Moderation />} />
           </Route>

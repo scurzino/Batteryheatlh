@@ -1,0 +1,92 @@
+import React, { useState } from 'react';
+import { BrainCircuit, Download, Upload, Cpu, ArrowRight } from 'lucide-react';
+
+export default function PredictiveModel() {
+  const [file, setFile] = useState<File | null>(null);
+
+  const handleDownloadCsv = () => {
+    // Genera un CSV template vuoto con le colonne corrette
+    const headers = ['OEM', 'Model', 'Year', 'Battery_Model', 'Mileage', 'Region', 'Charge_Type'];
+    const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "soh_prediction_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  return (
+    <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto">
+      <div>
+        <h1 className="text-3xl font-headline font-bold mb-2 flex items-center gap-3">
+          <BrainCircuit className="w-8 h-8 text-primary" /> SOH Predictive Model
+        </h1>
+        <p className="text-secondary text-sm">
+          Utilizza il nostro modello IA addestrato su reti neurali (PyTorch) per ottenere una stima precisa dello State of Health.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Step 1: Download */}
+        <div className="glass-panel ghost-border rounded-3xl p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -z-10" />
+          <div className="w-12 h-12 rounded-xl bg-primary-container text-primary flex items-center justify-center mb-6">
+            <Download className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold font-headline mb-2">1. Scarica il Template</h2>
+          <p className="text-secondary text-sm mb-8">
+            Per ottenere una previsione, hai bisogno di formattare i dati del tuo veicolo in un formato riconosciuto dal modello.
+          </p>
+          <button 
+            onClick={handleDownloadCsv}
+            className="flex items-center gap-2 px-5 py-2.5 bg-surface text-on-surface border ghost-border rounded-xl font-medium hover:bg-surface-container transition-colors"
+          >
+            <Download className="w-4 h-4" /> Template CSV
+          </button>
+        </div>
+
+        {/* Step 2: Upload */}
+        <div className="glass-panel ghost-border rounded-3xl p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-bl-full -z-10" />
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6">
+            <Upload className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold font-headline mb-2">2. Carica i Dati</h2>
+          <p className="text-secondary text-sm mb-8">
+            Carica il file CSV compilato. Il backend lo elaborerà tramite il modello `.pt` per restituirti la predizione.
+          </p>
+          
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-lowest transition-colors">
+              <span className="text-sm font-medium text-secondary">
+                {file ? file.name : "Clicca per selezionare un file"}
+              </span>
+              <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
+            </label>
+            <button 
+              disabled={!file}
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Cpu className="w-4 h-4" /> Avvia Inferenza <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="glass-panel ghost-border rounded-3xl p-8 mt-8">
+        <h2 className="text-xl font-bold font-headline mb-4">Risultati della Predizione</h2>
+        <div className="p-8 text-center text-secondary bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant">
+          Carica un file per visualizzare la predizione generata dal modello PyTorch.
+        </div>
+      </div>
+    </div>
+  );
+}

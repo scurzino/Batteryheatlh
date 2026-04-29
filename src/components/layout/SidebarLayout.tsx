@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Car, FileBarChart, Settings as SettingsIcon, LayoutGrid, ChevronLeft, Shield, Zap, LogOut, User } from 'lucide-react';
+import { Activity, Car, FileBarChart, Settings as SettingsIcon, LayoutGrid, ChevronLeft, Shield, Zap, LogOut, User, BrainCircuit } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function SidebarLayout() {
@@ -11,6 +11,7 @@ export default function SidebarLayout() {
     { name: 'Esplora', path: '/', icon: LayoutGrid },
     { name: 'Data Explorer', path: '/explorer', icon: Activity },
     { name: 'Benchmarks', path: '/benchmarks', icon: FileBarChart },
+    { name: 'Modello Predittivo', path: '/predictive-model', icon: BrainCircuit },
     { name: 'Impostazioni', path: '/settings', icon: SettingsIcon },
   ];
 

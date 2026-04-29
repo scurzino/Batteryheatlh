@@ -214,9 +214,9 @@ export default function Register() {
           <div className="mt-8 flex justify-between">
             {step > 0 ? <button onClick={() => setStep(step - 1)} className="px-5 py-2.5 ghost-border rounded-xl">Indietro</button> : <div />}
             {step < 3 ? (
-              <button disabled={!canAdvance()} onClick={handleNext} className="px-5 py-2.5 bg-primary text-white rounded-xl">Avanti</button>
+              <button disabled={!canAdvance()} onClick={handleNext} className="px-5 py-2.5 bg-primary text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">Avanti</button>
             ) : (
-              <button disabled={isSubmitting} onClick={handleSubmit} className="px-5 py-2.5 bg-primary text-white rounded-xl">{isSubmitting ? 'Invio...' : 'Invia al server'}</button>
+              <button disabled={isSubmitting} onClick={handleSubmit} className="px-5 py-2.5 bg-primary text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">{isSubmitting ? 'Invio...' : 'Invia al server'}</button>
             )}
           </div>
         </div>

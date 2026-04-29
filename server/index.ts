@@ -37,6 +37,7 @@ import { AuthHandlers, authMiddleware, adminMiddleware } from './auth.js';
 import { SohHandlers } from './soh.js';
 import { AnalyticsHandlers } from './analytics.js';
 import { ModerationHandlers } from './moderation.js';
+import { PredictiveHandlers } from './predictive.js';
 
 // Routes: Auth
 app.post('/api/auth/register', AuthHandlers.register);
@@ -57,6 +58,9 @@ app.post('/api/soh/:id/notes', authMiddleware, SohHandlers.addNote);
 
 // Routes: Analytics
 app.get('/api/soh/analytics', AnalyticsHandlers.getBenchmarks);
+
+// Routes: Predictive Model
+app.post('/api/predictive/predict', PredictiveHandlers.predictSoh);
 
 // Routes: Moderation
 app.post('/api/moderation/report', authMiddleware, ModerationHandlers.createReport);
