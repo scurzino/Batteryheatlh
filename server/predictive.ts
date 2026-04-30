@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from './index.js';
-import FormData from 'form-data';
 import fs from 'fs';
+import { Blob } from 'buffer';
 
 const HF_API_URL = process.env.HF_API_URL || "https://scurzino-ev-soh-api.hf.space/predict";
 const HF_ACCESS_TOKEN = process.env.HF_ACCESS_TOKEN;
@@ -31,30 +31,28 @@ export const PredictiveHandlers = {
             });
 
             if (!hasVehicle) {
-                // If they don't have entries, maybe they have trips?
-                // Just to be safe we'll keep the same check as before
                 return res.status(403).json({ error: 'Il veicolo selezionato non appartiene al tuo account' });
             }
 
-            // Create form-data instance
+            // Usiamo il FormData nativo di Node 18+ (senza pacchetti esterni che fanno impazzire Vercel)
+            const fileBuffer = fs.readFileSync(uploadedFile);
+            const blob = new Blob([fileBuffer], { type: 'text/csv' });
+            
             const formData = new FormData();
-            formData.append('file', fs.createReadStream(uploadedFile));
+            formData.append('file', blob, req.file.originalname || 'data.csv');
 
             // Prepare headers
-            const headers: any = {
-                ...formData.getHeaders(),
-            };
+            const headers: Record<string, string> = {};
             if (HF_ACCESS_TOKEN) {
                 headers['Authorization'] = `Bearer ${HF_ACCESS_TOKEN}`;
             }
 
             // Forward to Hugging Face API
-            // Note: We use global fetch if available, else we fall back to a library if needed.
-            // Node 18+ has native fetch. Let's assume native fetch is used, but we import form-data.
+            // Usando fetch nativo + FormData nativo, il boundary viene generato automaticamente!
             const apiRes = await fetch(HF_API_URL, {
                 method: 'POST',
                 headers,
-                body: formData as any
+                body: formData
             });
 
             if (!apiRes.ok) {
