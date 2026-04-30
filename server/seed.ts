@@ -23,11 +23,11 @@ async function main() {
 
   // 2. Crea veicoli
   const vehiclesData = [
-    { oem: 'Tesla', model: 'Model 3', year: 2021, batteryModel: 'LFP 60 kWh' },
-    { oem: 'Volkswagen', model: 'ID.3', year: 2020, batteryModel: 'NCM 58 kWh' },
-    { oem: 'Hyundai', model: 'Ioniq 5', year: 2022, batteryModel: 'NCM 72.6 kWh' },
-    { oem: 'Polestar', model: 'Polestar 2', year: 2023, batteryModel: 'NMC 78 kWh' },
-    { oem: 'BMW', model: 'i4', year: 2022, batteryModel: 'NCM 80 kWh' },
+    { oem: 'Tesla', model: 'Model 3', year: 2021, batteryModel: 'LFP 60 kWh', minEnvTemp: -10, maxEnvTemp: 45 },
+    { oem: 'Volkswagen', model: 'ID.3', year: 2020, batteryModel: 'NCM 58 kWh', minEnvTemp: -5, maxEnvTemp: 40 },
+    { oem: 'Hyundai', model: 'Ioniq 5', year: 2022, batteryModel: 'NCM 72.6 kWh', minEnvTemp: -15, maxEnvTemp: 45 },
+    { oem: 'Polestar', model: 'Polestar 2', year: 2023, batteryModel: 'NMC 78 kWh', minEnvTemp: -10, maxEnvTemp: 40 },
+    { oem: 'BMW', model: 'i4', year: 2022, batteryModel: 'NCM 80 kWh', minEnvTemp: -5, maxEnvTemp: 45 },
   ];
 
   const vehicles = [];
@@ -86,8 +86,6 @@ async function main() {
           usageType,
           chargeType,
           measurementMethod: method,
-          minEnvTemp: -5 + Math.random() * 10,
-          maxEnvTemp: 25 + Math.random() * 15,
           date,
           status: 'APPROVED',
           notes: 'Dato generato automaticamente dal seed'
