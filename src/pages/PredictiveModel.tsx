@@ -32,13 +32,20 @@ export default function PredictiveModel() {
       });
   }, []);
   const handleDownloadCsv = () => {
-    // Genera un CSV template vuoto con le colonne corrette
-    const headers = ['OEM', 'Model', 'Year', 'Battery_Model', 'Mileage', 'Region', 'Charge_Type'];
-    const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+    // Genera un CSV template vuoto con le 8 colonne esatte richieste dal modello PyTorch
+    const headers = ['avg_cell_voltage', 'charging_current', 'max_cell_voltage', 'min_cell_voltage', 'max_cell_temp', 'min_cell_temp', 'soc', 'timestamp'];
+    const dummyData1 = [3.8, 15.0, 3.85, 3.75, 25.0, 24.0, 80, 1715000000];
+    const dummyData2 = [3.82, 14.8, 3.86, 3.76, 25.2, 24.1, 81, 1715000060];
+    
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + headers.join(",") + "\n"
+      + dummyData1.join(",") + "\n"
+      + dummyData2.join(",") + "\n";
+      
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "soh_prediction_template.csv");
+    link.setAttribute("download", "template_ricarica_evsoh.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -46,7 +53,26 @@ export default function PredictiveModel() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      
+      // Pre-Validazione Lato Client: controllo delle intestazioni
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        if (text) {
+          const firstLine = text.split('\n')[0].trim();
+          const requiredHeaders = 'avg_cell_voltage,charging_current,max_cell_voltage,min_cell_voltage,max_cell_temp,min_cell_temp,soc,timestamp';
+          
+          if (firstLine !== requiredHeaders) {
+            setError('Formato file non valido. Assicurati di usare il template corretto e che le 8 colonne siano presenti nel giusto ordine.');
+            setFile(null);
+          } else {
+            setError(null);
+            setFile(selectedFile);
+          }
+        }
+      };
+      reader.readAsText(selectedFile);
     }
   };
 
