@@ -50,6 +50,10 @@ import { SohHandlers } from './soh.js';
 import { AnalyticsHandlers } from './analytics.js';
 import { ModerationHandlers } from './moderation.js';
 import { PredictiveHandlers } from './predictive.js';
+import multer from 'multer';
+import os from 'os';
+
+const upload = multer({ dest: os.tmpdir() });
 
 // Routes: Auth
 app.post('/api/auth/register', AuthHandlers.register);
@@ -74,7 +78,7 @@ app.put('/api/soh/entry/:id/metadata', authMiddleware, SohHandlers.updateEntryMe
 app.get('/api/soh/analytics', AnalyticsHandlers.getBenchmarks);
 
 // Routes: Predictive Model
-app.post('/api/predictive/predict', PredictiveHandlers.predictSoh);
+app.post('/api/predict-soh', authMiddleware, upload.single('file'), PredictiveHandlers.predictSoh);
 
 // Routes: Moderation
 app.post('/api/moderation/report', authMiddleware, ModerationHandlers.createReport);

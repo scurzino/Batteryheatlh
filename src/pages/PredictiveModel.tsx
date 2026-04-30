@@ -1,9 +1,36 @@
-import React, { useState } from 'react';
-import { BrainCircuit, Download, Upload, Cpu, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BrainCircuit, Download, Upload, Cpu, ArrowRight, AlertTriangle } from 'lucide-react';
+import { apiFetch } from '../utils/api';
+import { Link } from 'react-router-dom';
 
 export default function PredictiveModel() {
   const [file, setFile] = useState<File | null>(null);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [predictionResult, setPredictionResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    apiFetch('/soh/my-entries')
+      .then(data => {
+        const uniqueVehicles: any[] = [];
+        const seen = new Set();
+        for (const e of data) {
+          if (!seen.has(e.vehicle.id)) {
+            uniqueVehicles.push(e.vehicle);
+            seen.add(e.vehicle.id);
+          }
+        }
+        setVehicles(uniqueVehicles);
+        if (uniqueVehicles.length > 0) {
+          setSelectedVehicleId(uniqueVehicles[0].id);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch user vehicles', err);
+      });
+  }, []);
   const handleDownloadCsv = () => {
     // Genera un CSV template vuoto con le colonne corrette
     const headers = ['OEM', 'Model', 'Year', 'Battery_Model', 'Mileage', 'Region', 'Charge_Type'];
@@ -20,6 +47,41 @@ export default function PredictiveModel() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
+    }
+  };
+
+  const handleInference = async () => {
+    if (!file || !selectedVehicleId) return;
+    
+    setIsUploading(true);
+    setError(null);
+    setPredictionResult(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('vehicleId', selectedVehicleId);
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/predict-soh', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Errore durante la predizione');
+      }
+
+      const result = await res.json();
+      setPredictionResult(result);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -64,28 +126,81 @@ export default function PredictiveModel() {
             Upload the populated CSV file. The backend will process it through the `.pt` model to return your prediction.
           </p>
           
-          <div className="flex flex-col gap-3">
-            <label className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-lowest transition-colors">
-              <span className="text-sm font-medium text-secondary">
-                {file ? file.name : "Click to select a file"}
-              </span>
-              <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
-            </label>
-            <button 
-              disabled={!file}
-              className="flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Cpu className="w-4 h-4" /> Start Inference <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          {vehicles.length === 0 ? (
+            <div className="p-4 bg-orange-50 text-orange-800 rounded-xl flex items-start gap-3 border border-orange-200">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm">No vehicles found</p>
+                <p className="text-xs mt-1">
+                  You need to register at least one vehicle measurement before using the predictive model.
+                  Please add a vehicle in your <Link to="/settings" className="underline font-semibold">Settings</Link> or by adding an entry in <Link to="/explore" className="underline font-semibold">Explore</Link>.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-secondary mb-1">Select Vehicle</label>
+                <select 
+                  value={selectedVehicleId} 
+                  onChange={(e) => setSelectedVehicleId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border ghost-border bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.id}>{v.oem} {v.model} ({v.year}) - {v.batteryModel}</option>
+                  ))}
+                </select>
+              </div>
+
+              <label className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-lowest transition-colors">
+                <span className="text-sm font-medium text-secondary text-center">
+                  {file ? file.name : "Click to select a CSV file"}
+                </span>
+                <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
+              </label>
+
+              {error && (
+                <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
+                  {error}
+                </div>
+              )}
+
+              <button 
+                onClick={handleInference}
+                disabled={!file || !selectedVehicleId || isUploading}
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUploading ? (
+                  <div className="w-5 h-5 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                ) : (
+                  <><Cpu className="w-4 h-4" /> Start Inference <ArrowRight className="w-4 h-4" /></>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
       
       <div className="glass-panel ghost-border rounded-3xl p-8 mt-8">
         <h2 className="text-xl font-bold font-headline mb-4">Prediction Results</h2>
-        <div className="p-8 text-center text-secondary bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant">
-          Upload a file to view the prediction generated by the PyTorch model.
-        </div>
+        {predictionResult ? (
+          <div className="p-8 text-center bg-primary-container/20 rounded-xl border border-primary/20 flex flex-col items-center justify-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <BrainCircuit className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-sm font-medium text-secondary mb-1">Predicted State of Health (SOH)</h3>
+            <div className="text-5xl font-bold font-headline text-primary">
+              {predictionResult.predicted_soh?.toFixed(1) || '--'}%
+            </div>
+            <p className="text-sm text-secondary mt-4 max-w-md">
+              This prediction was generated by passing your driving data through the LSTM neural network model.
+            </p>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-secondary bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant">
+            Upload a file and start the inference to view the prediction generated by the PyTorch model.
+          </div>
+        )}
       </div>
     </div>
   );
