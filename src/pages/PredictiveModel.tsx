@@ -60,11 +60,15 @@ export default function PredictiveModel() {
       reader.onload = (event) => {
         const text = event.target?.result as string;
         if (text) {
-          const firstLine = text.split('\n')[0].trim();
-          const requiredHeaders = 'avg_cell_voltage,charging_current,max_cell_voltage,min_cell_voltage,max_cell_temp,min_cell_temp,soc,timestamp';
+          const firstLine = text.split('\n')[0].trim().toLowerCase();
+          const requiredHeaders = ['avg_cell_voltage', 'charging_current', 'max_cell_voltage', 'min_cell_voltage', 'max_cell_temp', 'min_cell_temp', 'soc', 'timestamp'];
           
-          if (firstLine !== requiredHeaders) {
-            setError('Formato file non valido. Assicurati di usare il template corretto e che le 8 colonne siano presenti nel giusto ordine.');
+          // Controlliamo che TUTTE le colonne richieste siano presenti nella prima riga, 
+          // indipendentemente dal fatto che il separatore sia virgola (,) o punto e virgola (;).
+          const missingHeaders = requiredHeaders.filter(header => !firstLine.includes(header));
+          
+          if (missingHeaders.length > 0) {
+            setError(`Formato file non valido. Mancano queste colonne: ${missingHeaders.join(', ')}`);
             setFile(null);
           } else {
             setError(null);
