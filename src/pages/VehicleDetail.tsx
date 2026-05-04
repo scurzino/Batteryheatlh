@@ -20,6 +20,9 @@ export default function VehicleDetail() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateForm, setUpdateForm] = useState({ grossCapacity: '', netCapacity: '', location: '', measurementTemp: '' });
   const [climateData, setClimateData] = useState<any[]>([]);
+  const [climateStats, setClimateStats] = useState<{ min: number, max: number, mean: number } | null>(null);
+  const [climateLoading, setClimateLoading] = useState(false);
+  const [climateError, setClimateError] = useState('');
   const [showAddSohModal, setShowAddSohModal] = useState(false);
   const [addSohForm, setAddSohForm] = useState({ soh: '', mileage: '', measurementMethod: '', measurementTemp: '', date: new Date().toISOString().split('T')[0], notes: '' });
   const [isSubmittingSoh, setIsSubmittingSoh] = useState(false);
@@ -60,26 +63,58 @@ export default function VehicleDetail() {
         });
         
         if (data.vehicle.location) {
+          setClimateLoading(true);
+          setClimateError('');
+          
+          let endDt = new Date(data.date || new Date());
+          const maxArchiveDate = new Date();
+          maxArchiveDate.setDate(maxArchiveDate.getDate() - 5);
+          if (endDt > maxArchiveDate) endDt = maxArchiveDate;
+          
+          const endDateStr = endDt.toISOString().split('T')[0];
+          const startDt = new Date(endDt);
+          startDt.setFullYear(startDt.getFullYear() - 1);
+          const startDateStr = startDt.toISOString().split('T')[0];
+
           fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(data.vehicle.location)}&count=1`)
             .then(r => r.json())
             .then(geo => {
               if (geo.results?.[0]) {
                 const { latitude, longitude } = geo.results[0];
-                return fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&past_days=90&forecast_days=0&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
+                return fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${latitude}&longitude=${longitude}&start_date=${startDateStr}&end_date=${endDateStr}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean&timezone=auto`);
+              } else {
+                throw new Error('Location not found');
               }
             })
-            .then(r => r ? r.json() : null)
+            .then(r => r.json())
             .then(weather => {
-              if (weather?.daily) {
+              if (weather?.daily?.time) {
                 const arr = weather.daily.time.map((t: string, i: number) => ({
                   date: new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                   max: weather.daily.temperature_2m_max[i],
-                  min: weather.daily.temperature_2m_min[i]
-                }));
-                // Downsample for cleaner chart if too many points
-                setClimateData(arr.filter((_: any, i: number) => i % 3 === 0));
+                  min: weather.daily.temperature_2m_min[i],
+                  mean: weather.daily.temperature_2m_mean[i]
+                })).filter((d: any) => d.max !== null && d.min !== null);
+
+                if (arr.length > 0) {
+                  const overallMax = Math.max(...arr.map((d: any) => d.max));
+                  const overallMin = Math.min(...arr.map((d: any) => d.min));
+                  const overallMean = arr.reduce((acc: number, d: any) => acc + d.mean, 0) / arr.length;
+                  
+                  setClimateStats({ min: overallMin, max: overallMax, mean: Number(overallMean.toFixed(1)) });
+                  setClimateData(arr.filter((_: any, i: number) => i % 7 === 0));
+                } else {
+                  setClimateError('No data available for this period');
+                }
+              } else {
+                setClimateError('Failed to load climate data');
               }
-            }).catch(console.error);
+            })
+            .catch(err => {
+               console.error(err);
+               setClimateError('Error fetching data');
+            })
+            .finally(() => setClimateLoading(false));
         }
         setAddSohForm(prev => ({
           ...prev,
@@ -398,21 +433,34 @@ export default function VehicleDetail() {
                       <div className="flex items-center gap-1.5 mb-3 text-on-surface">
                         <MapPin className="w-4 h-4 text-primary" /> Location: {entry.vehicle.location}
                       </div>
-                      {climateData.length > 0 ? (
-                        <div className="h-32">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={climateData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
-                              <XAxis dataKey="date" tick={{fontSize: 10}} tickLine={false} axisLine={false} minTickGap={20} />
-                              <YAxis tick={{fontSize: 10}} tickLine={false} axisLine={false} width={40} />
-                              <Tooltip contentStyle={{ fontSize: '12px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                              <Area type="monotone" dataKey="max" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} name="Max °C" />
-                              <Area type="monotone" dataKey="min" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} name="Min °C" />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
+                      {climateLoading ? (
+                        <div className="flex items-center justify-center h-32 text-xs text-secondary animate-pulse">Loading 1-year historical data...</div>
+                      ) : climateError ? (
+                        <div className="flex items-center justify-center h-32 text-xs text-red-500">{climateError}</div>
                       ) : (
-                        <div className="text-xs text-secondary animate-pulse">Loading climate data...</div>
+                        <>
+                          {climateStats && (
+                            <div className="flex justify-around mb-4 text-sm bg-surface rounded-xl p-3 border ghost-border shadow-sm">
+                              <div className="text-center"><div className="text-xs text-secondary font-medium">Yearly Min</div><div className="font-bold text-lg text-blue-500">{climateStats.min}°C</div></div>
+                              <div className="text-center"><div className="text-xs text-secondary font-medium">Yearly Mean</div><div className="font-bold text-lg text-on-surface">{climateStats.mean}°C</div></div>
+                              <div className="text-center"><div className="text-xs text-secondary font-medium">Yearly Max</div><div className="font-bold text-lg text-red-500">{climateStats.max}°C</div></div>
+                            </div>
+                          )}
+                          {climateData.length > 0 && (
+                            <div className="h-40">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={climateData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
+                                  <XAxis dataKey="date" tick={{fontSize: 10}} tickLine={false} axisLine={false} minTickGap={30} />
+                                  <YAxis tick={{fontSize: 10}} tickLine={false} axisLine={false} width={40} />
+                                  <Tooltip contentStyle={{ fontSize: '12px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                  <Area type="monotone" dataKey="max" stroke="#ef4444" strokeWidth={2} fill="#ef4444" fillOpacity={0.1} name="Max °C" />
+                                  <Area type="monotone" dataKey="min" stroke="#3b82f6" strokeWidth={2} fill="#3b82f6" fillOpacity={0.1} name="Min °C" />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
