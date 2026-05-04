@@ -33,8 +33,7 @@ model Vehicle {
   batteryModel String
   grossCapacity Float?
   netCapacity   Float?
-  minEnvTemp    Float?
-  maxEnvTemp    Float?
+  location      String?
 
   entries      SohEntry[]
   trips        TripLog[]

@@ -15,8 +15,7 @@ const addEntrySchema = z.object({
     region: z.string().min(1),
     usageType: z.string().min(1),
     chargeType: z.string().min(1),
-    minEnvTemp: z.union([z.number(), z.string()]).optional(),
-    maxEnvTemp: z.union([z.number(), z.string()]).optional(),
+    location: z.string().optional(),
     soh: z.union([z.number(), z.string()]).refine(v => {
         const n = typeof v === 'string' ? parseFloat(v) : v;
         return n >= 0 && n <= 120;
@@ -144,8 +143,7 @@ export const SohHandlers = {
                         oem, model, year, batteryModel,
                         grossCapacity: rest.grossCapacity ? parseFloat(String(rest.grossCapacity)) : undefined,
                         netCapacity: rest.netCapacity ? parseFloat(String(rest.netCapacity)) : undefined,
-                        minEnvTemp: rest.minEnvTemp ? parseFloat(String(rest.minEnvTemp)) : undefined,
-                        maxEnvTemp: rest.maxEnvTemp ? parseFloat(String(rest.maxEnvTemp)) : undefined
+                        location: rest.location
                     }
                 });
             } else if (!vehicle.grossCapacity && rest.grossCapacity) {
@@ -154,8 +152,7 @@ export const SohHandlers = {
                     data: {
                         grossCapacity: rest.grossCapacity ? parseFloat(String(rest.grossCapacity)) : undefined,
                         netCapacity: rest.netCapacity ? parseFloat(String(rest.netCapacity)) : undefined,
-                        minEnvTemp: rest.minEnvTemp ? parseFloat(String(rest.minEnvTemp)) : undefined,
-                        maxEnvTemp: rest.maxEnvTemp ? parseFloat(String(rest.maxEnvTemp)) : undefined
+                        location: rest.location
                     }
                 });
             }
@@ -342,8 +339,7 @@ export const SohHandlers = {
                 data: {
                     grossCapacity: req.body.grossCapacity ? parseFloat(req.body.grossCapacity) : undefined,
                     netCapacity: req.body.netCapacity ? parseFloat(req.body.netCapacity) : undefined,
-                    minEnvTemp: req.body.minEnvTemp ? parseFloat(req.body.minEnvTemp) : undefined,
-                    maxEnvTemp: req.body.maxEnvTemp ? parseFloat(req.body.maxEnvTemp) : undefined
+                    location: req.body.location
                 }
             });
 

@@ -17,7 +17,8 @@ export default function VehicleDetail() {
   const [activeTab, setActiveTab] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [updateForm, setUpdateForm] = useState({ grossCapacity: '', netCapacity: '', minEnvTemp: '', maxEnvTemp: '', measurementTemp: '' });
+  const [updateForm, setUpdateForm] = useState({ grossCapacity: '', netCapacity: '', location: '', measurementTemp: '' });
+  const [climateData, setClimateData] = useState<any[]>([]);
   const [showAddSohModal, setShowAddSohModal] = useState(false);
   const [addSohForm, setAddSohForm] = useState({ soh: '', mileage: '', measurementMethod: '', measurementTemp: '', date: new Date().toISOString().split('T')[0], notes: '' });
   const [isSubmittingSoh, setIsSubmittingSoh] = useState(false);
@@ -53,10 +54,32 @@ export default function VehicleDetail() {
         setUpdateForm({
           grossCapacity: data.vehicle.grossCapacity?.toString() || '',
           netCapacity: data.vehicle.netCapacity?.toString() || '',
-          minEnvTemp: data.vehicle.minEnvTemp?.toString() || '',
-          maxEnvTemp: data.vehicle.maxEnvTemp?.toString() || '',
+          location: data.vehicle.location || '',
           measurementTemp: data.measurementTemp?.toString() || ''
         });
+        
+        if (data.vehicle.location) {
+          fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(data.vehicle.location)}&count=1`)
+            .then(r => r.json())
+            .then(geo => {
+              if (geo.results?.[0]) {
+                const { latitude, longitude } = geo.results[0];
+                return fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&past_days=90&forecast_days=0&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
+              }
+            })
+            .then(r => r ? r.json() : null)
+            .then(weather => {
+              if (weather?.daily) {
+                const arr = weather.daily.time.map((t: string, i: number) => ({
+                  date: new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                  max: weather.daily.temperature_2m_max[i],
+                  min: weather.daily.temperature_2m_min[i]
+                }));
+                // Downsample for cleaner chart if too many points
+                setClimateData(arr.filter((_: any, i: number) => i % 3 === 0));
+              }
+            }).catch(console.error);
+        }
         setAddSohForm(prev => ({
           ...prev,
           measurementMethod: data.measurementMethod || '',
@@ -129,8 +152,7 @@ export default function VehicleDetail() {
         body: JSON.stringify({
           grossCapacity: updateForm.grossCapacity,
           netCapacity: updateForm.netCapacity,
-          minEnvTemp: updateForm.minEnvTemp,
-          maxEnvTemp: updateForm.maxEnvTemp
+          location: updateForm.location
         })
       });
 
@@ -216,7 +238,7 @@ export default function VehicleDetail() {
         </Link>
         <div className="flex gap-2">
           {currentUser && currentUser.id === entry.userId && (
-            (!entry.vehicle.grossCapacity || !entry.vehicle.netCapacity || entry.vehicle.minEnvTemp === null || entry.vehicle.maxEnvTemp === null || entry.measurementTemp === null)
+            (!entry.vehicle.grossCapacity || !entry.vehicle.netCapacity || !entry.vehicle.location || entry.measurementTemp === null)
           ) && (
               <button onClick={() => setShowUpdateModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors animate-pulse shadow-sm">
                 <Activity className="w-3.5 h-3.5" /> Complete Missing Data
@@ -366,19 +388,36 @@ export default function VehicleDetail() {
               </div>
             </div>
 
-            {(entry.vehicle.minEnvTemp !== null || entry.vehicle.maxEnvTemp !== null || entry.measurementTemp !== null) && (
+            {(entry.vehicle.location || entry.measurementTemp !== null) && (
               <div className="glass-panel ghost-border rounded-xl p-5">
                 <h4 className="font-bold text-sm mb-3 text-secondary">Operating Temperatures</h4>
-                <div className="flex flex-col gap-2 text-sm font-medium">
-                  {(entry.vehicle.minEnvTemp !== null || entry.vehicle.maxEnvTemp !== null) && (
-                    <div className="flex justify-between p-2 bg-surface-container-lowest rounded-lg border ghost-border">
-                      <div className="flex items-center gap-1 text-blue-600">Usual Min: {entry.vehicle.minEnvTemp}°C</div>
-                      <div className="flex items-center gap-1 text-red-600">Usual Max: {entry.vehicle.maxEnvTemp}°C</div>
+                <div className="flex flex-col gap-4 text-sm font-medium">
+                  {entry.vehicle.location && (
+                    <div className="bg-surface-container-lowest rounded-lg border ghost-border p-4">
+                      <div className="flex items-center gap-1.5 mb-3 text-on-surface">
+                        <MapPin className="w-4 h-4 text-primary" /> Location: {entry.vehicle.location}
+                      </div>
+                      {climateData.length > 0 ? (
+                        <div className="h-32">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={climateData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
+                              <XAxis dataKey="date" tick={{fontSize: 10}} tickLine={false} axisLine={false} minTickGap={20} />
+                              <YAxis tick={{fontSize: 10}} tickLine={false} axisLine={false} width={40} />
+                              <Tooltip contentStyle={{ fontSize: '12px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                              <Area type="monotone" dataKey="max" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} name="Max °C" />
+                              <Area type="monotone" dataKey="min" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} name="Min °C" />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-secondary animate-pulse">Loading climate data...</div>
+                      )}
                     </div>
                   )}
                   {entry.measurementTemp !== null && entry.measurementTemp !== undefined && (
-                    <div className="flex justify-between items-center p-2 bg-surface-container-lowest rounded-lg border ghost-border text-on-surface">
-                      <div className="flex items-center gap-1">Measured During Test:</div>
+                    <div className="flex justify-between items-center p-3 bg-surface-container-lowest rounded-lg border ghost-border text-on-surface">
+                      <div className="flex items-center gap-1 text-secondary">Measured During Test:</div>
                       <div className="font-bold text-lg">{entry.measurementTemp}°C</div>
                     </div>
                   )}
@@ -401,27 +440,20 @@ export default function VehicleDetail() {
           </div>
           <div className="space-y-4">
             {myEntries.length === 0 ? <p className="text-secondary text-sm">No history available for this vehicle.</p> : (
-              myEntries.map((e, idx) => {
-                const isDifferentMethod = idx < myEntries.length - 1 && e.measurementMethod !== myEntries[idx + 1].measurementMethod;
-                return (
-                  <div key={e.id} className="flex justify-between items-center border-b ghost-border pb-4 last:border-0 last:pb-0">
-                    <div>
-                      <div className="font-bold text-on-surface text-lg">{e.soh}% SOH</div>
-                      <div className="text-sm text-secondary flex gap-2">
-                        <span>{new Date(e.date).toLocaleDateString()}</span>
-                        <span>&bull;</span>
-                        <span>{e.mileage.toLocaleString()} km</span>
-                      </div>
-                      <div className="text-xs text-secondary mt-1">Method: {e.measurementMethod}</div>
-                    </div>
-                    {isDifferentMethod && (
-                      <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-lg text-xs font-semibold" title="The measurement method changed compared to the previous chronological entry.">
-                        <AlertTriangle className="w-3.5 h-3.5" /> Method Changed
-                      </div>
-                    )}
-                  </div>
-                )
-              })
+              <div className="h-64 mt-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={[...myEntries].sort((a, b) => a.mileage - b.mileage)} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="mileage" type="number" domain={['dataMin', 'dataMax']} tickFormatter={v => `${(v/1000).toFixed(0)}k`} tickLine={false} axisLine={false} />
+                    <YAxis domain={['auto', 'auto']} tickLine={false} axisLine={false} />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      labelFormatter={v => `${Number(v).toLocaleString()} km`}
+                      formatter={(val: number, name: string, props: any) => [`${val}% (Method: ${props.payload.measurementMethod})`, 'SOH']}
+                    />
+                    <Area type="monotone" dataKey="soh" stroke="var(--color-primary)" strokeWidth={3} fill="var(--color-primary)" fillOpacity={0.1} activeDot={{ r: 6 }} dot={{ r: 4, fill: "var(--color-primary)", strokeWidth: 2, stroke: "#fff" }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
         </div>
@@ -551,19 +583,12 @@ export default function VehicleDetail() {
                 </div>
               </>
             )}
-            {(entry.vehicle.minEnvTemp === null || entry.vehicle.maxEnvTemp === null) && (
-              <>
-                <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1">Min Ambient Temp (°C)</label>
-                  <input type="number" required value={updateForm.minEnvTemp} onChange={(e) => setUpdateForm({ ...updateForm, minEnvTemp: e.target.value })}
-                    className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="-10" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1">Max Ambient Temp (°C)</label>
-                  <input type="number" required value={updateForm.maxEnvTemp} onChange={(e) => setUpdateForm({ ...updateForm, maxEnvTemp: e.target.value })}
-                    className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="35" />
-                </div>
-              </>
+            {!entry.vehicle.location && (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-secondary mb-1">Primary Location (City, Country)</label>
+                <input type="text" required value={updateForm.location} onChange={(e) => setUpdateForm({ ...updateForm, location: e.target.value })}
+                  className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="e.g. Milan, Italy" />
+              </div>
             )}
             {entry.measurementTemp === null && (
               <div className="sm:col-span-2">

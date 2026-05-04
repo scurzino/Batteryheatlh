@@ -25,7 +25,7 @@ interface FormData {
   oem: string; model: string; year: string; batteryModel: string;
   grossCapacity: string; netCapacity: string;
   region: string; usageType: UsageType | ''; chargeType: ChargeType | '';
-  minEnvTemp: string; maxEnvTemp: string; measurementTemp: string;
+  location: string; measurementTemp: string;
   soh: string; mileage: string; measurementMethod: MeasurementMethod | '';
   date: string; notes: string;
 }
@@ -34,7 +34,7 @@ const INITIAL: FormData = {
   oem: '', model: '', year: '', batteryModel: '',
   grossCapacity: '', netCapacity: '',
   region: '', usageType: '', chargeType: '',
-  minEnvTemp: '', maxEnvTemp: '', measurementTemp: '',
+  location: '', measurementTemp: '',
   soh: '', mileage: '', measurementMethod: '', date: '', notes: '',
 };
 
@@ -66,7 +66,7 @@ export default function Register() {
 
   function canAdvance() {
     if (step === 0) return form.oem && form.model && form.year && form.batteryModel;
-    if (step === 1) return form.region && form.usageType && form.chargeType && form.minEnvTemp && form.maxEnvTemp;
+    if (step === 1) return form.region && form.usageType && form.chargeType && form.location;
     if (step === 2) return form.soh && form.mileage && form.measurementMethod && form.date;
     return true;
   }
@@ -88,8 +88,7 @@ export default function Register() {
         region: form.region,
         usageType: form.usageType,
         chargeType: form.chargeType,
-        minEnvTemp: form.minEnvTemp ? parseFloat(form.minEnvTemp) : undefined,
-        maxEnvTemp: form.maxEnvTemp ? parseFloat(form.maxEnvTemp) : undefined,
+        location: form.location,
         soh: parseFloat(form.soh),
         mileage: parseInt(form.mileage),
         measurementMethod: form.measurementMethod,
@@ -193,9 +192,8 @@ export default function Register() {
                   <option value="">Select Country...</option>{COUNTRIES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Avg. Min Temp (°C)"><input type="number" value={form.minEnvTemp} onChange={(e) => set('minEnvTemp', e.target.value)} className={INPUT} placeholder="-5" /></Field>
-                <Field label="Avg. Max Temp (°C)"><input type="number" value={form.maxEnvTemp} onChange={(e) => set('maxEnvTemp', e.target.value)} className={INPUT} placeholder="35" /></Field>
+              <div className="grid grid-cols-1 gap-4">
+                <Field label="Location (City, Country)"><input type="text" value={form.location} onChange={(e) => set('location', e.target.value)} className={INPUT} placeholder="e.g. Milan, Italy" /></Field>
               </div>
               <Field label="Usage Type"><select value={form.usageType} onChange={(e) => set('usageType', e.target.value as any)} className={SELECT}><option value="">Select...</option>{USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
               <Field label="Charging"><select value={form.chargeType} onChange={(e) => set('chargeType', e.target.value as any)} className={SELECT}><option value="">Select...</option>{CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
