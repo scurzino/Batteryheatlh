@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Car, MapPin, Zap, Activity, Info, AlertTriangle,
 import { StatusBadge, SohBadge, TagBadge } from '../components/ui/Badge';
 import { getRegressionLine } from '../utils/regressionCheck';
 import Modal from '../components/ui/Modal';
+import { LocationSearch } from '../components/ui/LocationSearch';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 
@@ -586,8 +587,7 @@ export default function VehicleDetail() {
             {!entry.vehicle.location && (
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-secondary mb-1">Primary Location (City, Country)</label>
-                <input type="text" required value={updateForm.location} onChange={(e) => setUpdateForm({ ...updateForm, location: e.target.value })}
-                  className="w-full p-3 rounded-xl ghost-border bg-surface-container-lowest outline-none focus:ring-2 focus:ring-primary/20" placeholder="e.g. Milan, Italy" />
+                <LocationSearch value={updateForm.location} onChange={(val) => setUpdateForm({ ...updateForm, location: val })} placeholder="e.g. Milan, Italy" />
               </div>
             )}
             {entry.measurementTemp === null && (

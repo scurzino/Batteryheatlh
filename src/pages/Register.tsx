@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, CheckCircle, Car, MapPin, Zap, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
+import { LocationSearch } from '../components/ui/LocationSearch';
 import { OEMS, COUNTRIES, USAGE_TYPES, CHARGE_TYPES, MEASUREMENT_METHODS, UsageType, ChargeType, MeasurementMethod } from '../data/mockData';
 
 const STEPS = [
@@ -193,7 +194,7 @@ export default function Register() {
                 </select>
               </Field>
               <div className="grid grid-cols-1 gap-4">
-                <Field label="Location (City, Country)"><input type="text" value={form.location} onChange={(e) => set('location', e.target.value)} className={INPUT} placeholder="e.g. Milan, Italy" /></Field>
+                <Field label="Location (City, Country)"><LocationSearch value={form.location} onChange={(val) => set('location', val)} placeholder="e.g. Milan, Italy" className={INPUT} /></Field>
               </div>
               <Field label="Usage Type"><select value={form.usageType} onChange={(e) => set('usageType', e.target.value as any)} className={SELECT}><option value="">Select...</option>{USAGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
               <Field label="Charging"><select value={form.chargeType} onChange={(e) => set('chargeType', e.target.value as any)} className={SELECT}><option value="">Select...</option>{CHARGE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
