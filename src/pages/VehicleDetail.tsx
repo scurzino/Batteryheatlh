@@ -76,7 +76,8 @@ export default function VehicleDetail() {
           startDt.setFullYear(startDt.getFullYear() - 1);
           const startDateStr = startDt.toISOString().split('T')[0];
 
-          fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(data.vehicle.location)}&count=1`)
+          const searchQuery = data.vehicle.location.split(',')[0].trim();
+          fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1`)
             .then(r => r.json())
             .then(geo => {
               if (geo.results?.[0]) {
