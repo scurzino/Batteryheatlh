@@ -60,9 +60,10 @@ app.post('/api/auth/register', AuthHandlers.register);
 app.post('/api/auth/login', AuthHandlers.login);
 app.get('/api/auth/me', authMiddleware, AuthHandlers.getMe);
 
-// Routes: SOH & Data
+// Routes: SOH & Data (static routes MUST come before :id wildcard)
 app.get('/api/soh/explore', SohHandlers.getExplore);
 app.get('/api/soh/my-entries', authMiddleware, SohHandlers.getMyEntries);
+app.get('/api/soh/analytics', AnalyticsHandlers.getBenchmarks);
 app.get('/api/soh/:id', SohHandlers.getEntryById);
 app.post('/api/soh/entry', authMiddleware, SohHandlers.addEntry);
 
@@ -77,9 +78,6 @@ app.get('/api/soh/:id/notes', SohHandlers.getNotesByVehicle);
 app.post('/api/soh/:id/notes', authMiddleware, SohHandlers.addNote);
 app.put('/api/soh/vehicle/:id/metadata', authMiddleware, SohHandlers.updateVehicleMetadata);
 app.put('/api/soh/entry/:id/metadata', authMiddleware, SohHandlers.updateEntryMetadata);
-
-// Routes: Analytics
-app.get('/api/soh/analytics', AnalyticsHandlers.getBenchmarks);
 
 // Routes: Predictive Model
 app.post('/api/predict-soh', authMiddleware, upload.single('file'), PredictiveHandlers.predictSoh);
