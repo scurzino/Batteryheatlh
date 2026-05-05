@@ -40,6 +40,70 @@ const addTripSchema = z.object({
     date: z.string().optional(),
 });
 
+// ── Similarity Detection ────────────────────────────────────────────────
+
+function levenshtein(a: string, b: string): number {
+    const la = a.length, lb = b.length;
+    const dp: number[][] = Array.from({ length: la + 1 }, (_, i) =>
+        Array.from({ length: lb + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    );
+    for (let i = 1; i <= la; i++) {
+        for (let j = 1; j <= lb; j++) {
+            dp[i][j] = a[i - 1] === b[j - 1]
+                ? dp[i - 1][j - 1]
+                : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+        }
+    }
+    return dp[la][lb];
+}
+
+function similarity(a: string, b: string): number {
+    const al = a.toLowerCase().trim();
+    const bl = b.toLowerCase().trim();
+    if (al === bl) return 1;
+    const maxLen = Math.max(al.length, bl.length);
+    if (maxLen === 0) return 1;
+    return 1 - levenshtein(al, bl) / maxLen;
+}
+
+async function findSimilarVehicleLabels(
+    oem: string, model: string
+): Promise<{ similarOem: string | null; similarModel: string | null }> {
+    const vehicles = await prisma.vehicle.findMany({
+        select: { oem: true, model: true },
+        distinct: ['oem', 'model']
+    });
+
+    const THRESHOLD = 0.75;
+    let similarOem: string | null = null;
+    let similarModel: string | null = null;
+
+    // Check OEM similarity
+    const distinctOems = [...new Set(vehicles.map(v => v.oem))];
+    for (const existingOem of distinctOems) {
+        if (existingOem.toLowerCase() === oem.toLowerCase()) { similarOem = null; break; }
+        const sim = similarity(oem, existingOem);
+        if (sim >= THRESHOLD && sim < 1) {
+            similarOem = existingOem;
+        }
+    }
+
+    // Check Model similarity within same OEM
+    const sameOemModels = vehicles
+        .filter(v => v.oem.toLowerCase() === oem.toLowerCase())
+        .map(v => v.model);
+    const distinctModels = [...new Set(sameOemModels)];
+    for (const existingModel of distinctModels) {
+        if (existingModel.toLowerCase() === model.toLowerCase()) { similarModel = null; break; }
+        const sim = similarity(model, existingModel);
+        if (sim >= THRESHOLD && sim < 1) {
+            similarModel = existingModel;
+        }
+    }
+
+    return { similarOem, similarModel };
+}
+
 // ── Regression Analysis ─────────────────────────────────────────────────
 
 interface RegressionResult {
@@ -181,6 +245,28 @@ export const SohHandlers = {
                     status,
                 }
             });
+
+            // 4. Similarity check on OEM/Model
+            const { similarOem, similarModel } = await findSimilarVehicleLabels(oem, model);
+            if (similarOem || similarModel) {
+                const parts: string[] = [];
+                if (similarOem) parts.push(`OEM "${oem}" is similar to existing "${similarOem}"`);
+                if (similarModel) parts.push(`Model "${model}" is similar to existing "${similarModel}"`);
+                await prisma.moderationFlag.create({
+                    data: {
+                        entryId: entry.id,
+                        reportedById: null,
+                        reason: `[AUTO] Possible duplicate label: ${parts.join('; ')}`,
+                    }
+                });
+                // Also flag the entry if it wasn't already flagged by regression
+                if (status === 'APPROVED') {
+                    await prisma.sohEntry.update({
+                        where: { id: entry.id },
+                        data: { status: 'FLAGGED_BY_SYSTEM' }
+                    });
+                }
+            }
 
             res.status(201).json({ message: 'Entry saved', entry, analysis: stats });
         } catch (err) {
@@ -347,6 +433,39 @@ export const SohHandlers = {
         } catch (err) {
             console.error(err);
             res.status(500).json({ error: 'Failed to update vehicle metadata' });
+        }
+    },
+
+    async getDistinctOems(req: Request, res: Response) {
+        try {
+            const vehicles = await prisma.vehicle.findMany({
+                select: { oem: true },
+                distinct: ['oem'],
+                orderBy: { oem: 'asc' }
+            });
+            // Merge with the static OEMS list so we always have those + any user-created ones
+            const dbOems = vehicles.map(v => v.oem);
+            const staticOems = ['Tesla', 'Volkswagen', 'Hyundai', 'Kia', 'Audi', 'BMW', 'Polestar', 'Renault', 'Peugeot', 'Fiat', 'MG', 'BYD'];
+            const all = [...new Set([...staticOems, ...dbOems])].sort();
+            res.json(all);
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to get OEMs' });
+        }
+    },
+
+    async getModelsByOem(req: Request, res: Response) {
+        try {
+            const oem = req.query.oem as string;
+            if (!oem) return res.json([]);
+            const vehicles = await prisma.vehicle.findMany({
+                where: { oem: { equals: oem, mode: 'insensitive' } },
+                select: { model: true },
+                distinct: ['model'],
+                orderBy: { model: 'asc' }
+            });
+            res.json(vehicles.map(v => v.model));
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to get models' });
         }
     },
 

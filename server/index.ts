@@ -66,6 +66,10 @@ app.get('/api/soh/my-entries', authMiddleware, SohHandlers.getMyEntries);
 app.get('/api/soh/:id', SohHandlers.getEntryById);
 app.post('/api/soh/entry', authMiddleware, SohHandlers.addEntry);
 
+// Routes: Vehicle Catalog (for autocomplete)
+app.get('/api/vehicles/oems', SohHandlers.getDistinctOems);
+app.get('/api/vehicles/models', SohHandlers.getModelsByOem);
+
 // Routes: Trips & Notes
 app.get('/api/soh/:id/trips', SohHandlers.getTripsByVehicle);
 app.post('/api/soh/:id/trips', authMiddleware, SohHandlers.addTrip);

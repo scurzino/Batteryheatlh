@@ -83,8 +83,16 @@ export default function Moderation() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <StatusBadge status="PENDING" />
-                                        <span className={`text-xs px-2 py-1 rounded ${entry.flags?.length > 0 ? 'bg-amber-100 text-amber-800 font-semibold' : 'text-secondary bg-surface-container'}`}>
-                                            {entry.flags?.length > 0 ? 'User Report' : 'Detected by AI Backend'}
+                                        <span className={`text-xs px-2 py-1 rounded font-semibold ${
+                                            entry.flags?.some((f: any) => f.reason?.startsWith('[AUTO] Possible duplicate'))
+                                                ? 'bg-purple-100 text-purple-800'
+                                                : entry.flags?.length > 0
+                                                    ? 'bg-amber-100 text-amber-800'
+                                                    : 'text-secondary bg-surface-container'
+                                        }`}>
+                                            {entry.flags?.some((f: any) => f.reason?.startsWith('[AUTO] Possible duplicate'))
+                                                ? 'Label Similarity Check'
+                                                : entry.flags?.length > 0 ? 'User Report' : 'Detected by AI Backend'}
                                         </span>
                                     </div>
                                     <h3 className="font-headline font-bold text-lg mb-2">

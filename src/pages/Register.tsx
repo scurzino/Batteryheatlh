@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, CheckCircle, Car, MapPin, Zap, Activity } from '
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
 import { LocationSearch } from '../components/ui/LocationSearch';
+import { AutocompleteInput } from '../components/ui/AutocompleteInput';
 import { OEMS, COUNTRIES, USAGE_TYPES, CHARGE_TYPES, MEASUREMENT_METHODS, UsageType, ChargeType, MeasurementMethod } from '../data/mockData';
 
 const STEPS = [
@@ -167,12 +168,36 @@ export default function Register() {
             <div className="space-y-5">
               <div className="mb-6"><h2 className="text-xl font-bold">Vehicle Data</h2></div>
               <Field label="Manufacturer (OEM)">
-                <select value={form.oem} onChange={(e) => set('oem', e.target.value)} className={SELECT}>
-                  <option value="">Select...</option>{OEMS.map((o) => <option key={o}>{o}</option>)}
-                </select>
+                <AutocompleteInput
+                  value={form.oem}
+                  onChange={(val) => set('oem', val)}
+                  fetchSuggestions={async (q) => {
+                    try {
+                      const all: string[] = await apiFetch('/vehicles/oems');
+                      return all.filter((o: string) => o.toLowerCase().includes(q.toLowerCase()));
+                    } catch { return OEMS.filter(o => o.toLowerCase().includes(q.toLowerCase())); }
+                  }}
+                  placeholder="e.g. Tesla, Volkswagen..."
+                  className={INPUT}
+                />
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Model"><input value={form.model} onChange={(e) => set('model', e.target.value)} className={INPUT} /></Field>
+                <Field label="Model">
+                  <AutocompleteInput
+                    value={form.model}
+                    onChange={(val) => set('model', val)}
+                    fetchSuggestions={async (q) => {
+                      if (!form.oem) return [];
+                      try {
+                        const models: string[] = await apiFetch(`/vehicles/models?oem=${encodeURIComponent(form.oem)}`);
+                        return models.filter((m: string) => m.toLowerCase().includes(q.toLowerCase()));
+                      } catch { return []; }
+                    }}
+                    placeholder={form.oem ? `Model for ${form.oem}...` : 'Select OEM first'}
+                    className={INPUT}
+                    disabled={!form.oem}
+                  />
+                </Field>
                 <Field label="Year"><input type="number" value={form.year} onChange={(e) => set('year', e.target.value)} className={INPUT} /></Field>
               </div>
               <div className="grid grid-cols-2 gap-4">
