@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { BrainCircuit, Download, Upload, Cpu, ArrowRight, AlertTriangle } from 'lucide-react';
 import { apiFetch } from '../utils/api';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function PredictiveModel() {
+  const { isAdmin } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
@@ -116,7 +118,24 @@ export default function PredictiveModel() {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto">
+    <div className="relative">
+      {!isAdmin && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/60 backdrop-blur-md rounded-3xl" style={{ marginTop: '-1.5rem', marginBottom: '-1.5rem', marginLeft: '-1.5rem', marginRight: '-1.5rem' }}>
+          <div className="glass-panel ghost-border p-8 rounded-3xl flex flex-col items-center max-w-md text-center shadow-2xl animate-in zoom-in duration-500">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+              <BrainCircuit className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-3xl font-headline font-black mb-3 text-on-surface">Work in Progress</h2>
+            <p className="text-secondary text-sm mb-8 leading-relaxed">
+              Our AI Predictive Model is currently under active development. This section is temporarily restricted to administrators.
+            </p>
+            <Link to="/predictive-info" className="px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary/90 transition-colors shadow-lg">
+              Learn More
+            </Link>
+          </div>
+        </div>
+      )}
+      <div className={`p-6 md:p-8 space-y-8 max-w-5xl mx-auto ${!isAdmin ? 'pointer-events-none opacity-40 blur-[2px] select-none' : ''}`}>
       <div>
         <h1 className="text-3xl font-headline font-bold mb-2 flex items-center gap-3">
           <BrainCircuit className="w-8 h-8 text-primary" /> SOH Predictive Model
@@ -233,5 +252,6 @@ export default function PredictiveModel() {
         )}
       </div>
     </div>
+  </div>
   );
 }
