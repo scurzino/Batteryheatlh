@@ -6,7 +6,7 @@ import {
 import { OEMS } from '../data/mockData';
 import { apiFetch } from '../utils/api';
 
-const TABS = ['By Model', 'Mileage vs SOH', 'By Region', 'By Charge Type'];
+const TABS = ['By Model', 'Mileage vs SOH', 'By Region', 'By Charge Type', 'SOH vs Climate'];
 
 const OEM_COLORS: Record<string, string> = {
   Tesla: '#e31937', Volkswagen: '#1d4ed8', Hyundai: '#0e4da4',
@@ -40,6 +40,62 @@ export default function Benchmarks() {
       .then(setApproved)
       .finally(() => setLoading(false));
   }, []);
+
+  // ── Climate data fetch (SOH vs Climate tab) ──
+  const [climateScatter, setClimateScatter] = useState<any[]>([]);
+  const [climateLoading, setClimateLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== 4 || approved.length === 0 || climateScatter.length > 0) return;
+
+    const locations = [...new Set(approved.filter(e => e.location).map(e => e.location))] as string[];
+    if (locations.length === 0) return;
+
+    setClimateLoading(true);
+
+    const endDt = new Date();
+    endDt.setDate(endDt.getDate() - 5);
+    const endDateStr = endDt.toISOString().split('T')[0];
+    const startDt = new Date(endDt);
+    startDt.setFullYear(startDt.getFullYear() - 1);
+    const startDateStr = startDt.toISOString().split('T')[0];
+
+    Promise.all(
+      locations.map(loc =>
+        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc.split(',')[0].trim())}&count=1`)
+          .then(r => r.json())
+          .then(geo => {
+            if (!geo.results?.[0]) return null;
+            const { latitude, longitude } = geo.results[0];
+            return fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${latitude}&longitude=${longitude}&start_date=${startDateStr}&end_date=${endDateStr}&daily=temperature_2m_min&timezone=auto`)
+              .then(r => r.json())
+              .then(weather => {
+                if (!weather?.daily?.temperature_2m_min) return null;
+                const mins = weather.daily.temperature_2m_min.filter((v: any) => v !== null);
+                if (mins.length === 0) return null;
+                const avgMin = mins.reduce((a: number, b: number) => a + b, 0) / mins.length;
+                return { location: loc, avgMinTemp: Number(avgMin.toFixed(1)) };
+              });
+          })
+          .catch(() => null)
+      )
+    ).then(results => {
+      const locMap: Record<string, number> = {};
+      for (const r of results) {
+        if (r) locMap[r.location] = r.avgMinTemp;
+      }
+      const points = approved
+        .filter(e => e.location && locMap[e.location] !== undefined)
+        .map(e => ({
+          avgMinTemp: locMap[e.location],
+          soh: e.soh,
+          oem: e.oem,
+          label: `${e.oem} ${e.model}`,
+          location: e.location,
+        }));
+      setClimateScatter(points);
+    }).finally(() => setClimateLoading(false));
+  }, [activeTab, approved]);
 
   const byModel = useMemo(() => {
     const map: Record<string, { total: number; count: number }> = {};
@@ -199,6 +255,49 @@ export default function Benchmarks() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          )}
+
+          {activeTab === 4 && (
+            <div className="glass-panel ghost-border rounded-2xl p-6">
+              <div className="flex justify-between items-start mb-5">
+                <div>
+                  <h2 className="font-headline font-bold text-lg mb-1">SOH vs Annual Avg. Min Temperature</h2>
+                  <p className="text-sm text-secondary">Each dot is a measurement plotted against its location's yearly average daily minimum temperature. Cold climates accelerate battery degradation.</p>
+                </div>
+              </div>
+              {climateLoading ? (
+                <div className="h-80 flex items-center justify-center text-secondary text-sm animate-pulse">Fetching climate data for {new Set(approved.filter(e => e.location).map(e => e.location)).size} locations...</div>
+              ) : climateScatter.length === 0 ? (
+                <div className="h-80 flex items-center justify-center text-secondary text-sm">No location data available. Vehicles must have a location set to correlate with climate.</div>
+              ) : (
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart margin={{ top: 10, right: 20, left: -10, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline-variant)" opacity={0.4} />
+                      <XAxis dataKey="avgMinTemp" type="number" axisLine={false} tickLine={false} name="Avg Min Temp" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}°C`} label={{ value: 'Avg Annual Min Temp (°C)', position: 'insideBottom', offset: -5, fontSize: 11, fill: 'var(--color-secondary)' }} />
+                      <YAxis dataKey="soh" type="number" domain={[75, 102]} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} name="SOH" />
+                      <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-surface-container-lowest border rounded-xl p-3 shadow-lg text-xs">
+                            <p className="font-semibold">{d.label}</p>
+                            <p>SOH: <b>{d.soh}%</b></p>
+                            <p>Avg Min Temp: <b>{d.avgMinTemp}°C</b></p>
+                            <p className="text-secondary mt-1">{d.location}</p>
+                          </div>
+                        );
+                      }} />
+                      <Scatter data={climateScatter} fillOpacity={0.75}>
+                        {climateScatter.map((entry, i) => (
+                          <Cell key={i} fill={oemColor(entry.oem)} />
+                        ))}
+                      </Scatter>
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           )}
         </>

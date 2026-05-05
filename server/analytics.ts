@@ -21,6 +21,7 @@ export const AnalyticsHandlers = {
                 region: e.region,
                 usageType: e.usageType,
                 chargeType: e.chargeType,
+                location: e.vehicle.location || null,
                 soh: e.soh,
                 mileage: e.mileage,
                 measurementMethod: e.measurementMethod,
