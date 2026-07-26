@@ -29,7 +29,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// 2. Global Rate Limiter (against basic DoS/bruteforce)
+// 2. Global Rate Limiter per API normali
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 100,
@@ -38,6 +38,15 @@ const limiter = rateLimit({
     legacyHeaders: false,
 });
 app.use(limiter);
+
+// Limiter specifico per login/register contro brute-force
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    message: 'Too many login attempts from this IP, please try again later.',
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+});
 
 // 3. Health Check Route
 app.get('/api/health', (req: Request, res: Response) => {
@@ -53,11 +62,10 @@ import { PredictiveHandlers } from './predictive.js';
 import multer from 'multer';
 import os from 'os';
 
-const upload = multer({ dest: os.tmpdir() });
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Routes: Auth
-app.post('/api/auth/register', AuthHandlers.register);
-app.post('/api/auth/login', AuthHandlers.login);
+// Login and Register are handled directly via Supabase Auth client on the frontend
 app.get('/api/auth/me', authMiddleware, AuthHandlers.getMe);
 
 // Routes: SOH & Data (static routes MUST come before :id wildcard)

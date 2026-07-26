@@ -1,0 +1,7 @@
+id,email,encrypted_password,raw_user_meta_data
+064f7993-39c9-4601-8404-2a4bdc4a3c72,adonideantonio@gmail.com,$2b$10$1TSuGya8rTxYPmKluy0FweZ9CUcITo6mBi5r0EZBdQBb8nnE42qBS,"{""name"":""Antonio Adonide "",""role"":""ADMIN""}"
+07382aa1-f19b-4165-9671-fddd8a1f716d,aleroc1999@gmail.com,$2b$10$G71FrPUJJuli.SQGZscHleIyFXQ0imkOFS4isZjTXpS/vyaIyLXrq,"{""name"":""Alessia Rocchetti"",""role"":""USER""}"
+32704b3f-d6ce-4501-9a85-90d2b358f704,flaviopanetta@gmail.com,$2b$10$FGV24Hs7AZeFmxmb4S.Z/eUDRgo2qE5k3IvrCAHQDITsmhOB6X6BW,"{""name"":""Flavio Panetta"",""role"":""USER""}"
+68d41a9b-8494-4609-a3eb-a28ec09cec17,alcioniedoardo@gmail.com,$2b$10$DnhpC8lZfL7z7Qai.BCWq.p015/cIJYRuFvak3kCux/qM0FSEoXve,"{""name"":""Edoardo Alcioni"",""role"":""USER""}"
+c7fb370b-e100-4daf-89d8-3a7ef37a7fff,paskmei@gmail.com,$2b$10$qMTnnGSOSvluw4EIu.3P3.Vor6lDDUe23IbO9t2rjdkd8kh6VIGxa,"{""name"":""Pasquale Mei"",""role"":""USER""}"
+e6e064df-b122-4e02-aefe-213f73ec13a4,serg5z@yahoo.com,$2b$10$xj2Qzx4VkcG/wpewpMlToeupHqsFijvrF4a9F7e.wQGrHFlBvlEtK,"{""name"":""Sergey"",""role"":""USER""}"

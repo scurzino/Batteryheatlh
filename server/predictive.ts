@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { prisma } from './index.js';
-import fs from 'fs';
 import { Blob } from 'buffer';
 
 const HF_API_URL = process.env.HF_API_URL || "https://scurzino-ev-soh-api.hf.space/predict";
@@ -24,7 +23,7 @@ export const PredictiveHandlers = {
             if (!file) {
                 return res.status(400).json({ error: 'Nessun file CSV caricato' });
             }
-            uploadedFile = file.path;
+            // Non salviamo più il path, useremo il buffer in memoria
 
             const hasVehicle = await prisma.sohEntry.findFirst({
                 where: { vehicleId: vehicleId, userId: userId }
@@ -34,9 +33,8 @@ export const PredictiveHandlers = {
                 return res.status(403).json({ error: 'Il veicolo selezionato non appartiene al tuo account' });
             }
 
-            // Usiamo il FormData nativo di Node 18+ (senza pacchetti esterni che fanno impazzire Vercel)
-            const fileBuffer = fs.readFileSync(uploadedFile);
-            const blob = new Blob([fileBuffer], { type: 'text/csv' });
+            // Usiamo direttamente il buffer in memoria (req.file.buffer)
+            const blob = new Blob([file.buffer], { type: 'text/csv' });
             
             const formData = new FormData();
             formData.append('file', blob, req.file.originalname || 'data.csv');
@@ -56,13 +54,9 @@ export const PredictiveHandlers = {
             });
 
             if (!apiRes.ok) {
-                let errorMsg = 'Errore durante la chiamata al modello remoto';
-                try {
-                    const errData = await apiRes.json();
-                    errorMsg = errData.error || errorMsg;
-                } catch (e) {}
-                console.error("HF API Error:", apiRes.status, errorMsg);
-                return res.status(apiRes.status).json({ error: errorMsg });
+                console.error("HF API Error:", apiRes.status);
+                // Evitiamo di ritornare l'errore nudo dal provider (potrebbe contenere stack trace sensibili)
+                return res.status(502).json({ error: 'Errore di comunicazione con il modello predittivo remoto' });
             }
 
             const result = await apiRes.json();
@@ -71,14 +65,6 @@ export const PredictiveHandlers = {
         } catch (err) {
             console.error("Errore durante l'esecuzione del modello predittivo:", err);
             return res.status(500).json({ error: 'Errore interno del server durante l\'elaborazione del modello' });
-        } finally {
-            if (uploadedFile && fs.existsSync(uploadedFile)) {
-                try {
-                    fs.unlinkSync(uploadedFile);
-                } catch (e) {
-                    console.error("Failed to delete temp file:", e);
-                }
-            }
         }
     }
 };
