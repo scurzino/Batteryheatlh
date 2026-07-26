@@ -1,9 +1,11 @@
-// Generic fetcher that automatically includes the JWT from localStorage
+import { supabase } from './supabase';
 
 export const API_URL = '/api';
 
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('token');
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    
     const headers = new Headers(options.headers || {});
 
     if (token) {
