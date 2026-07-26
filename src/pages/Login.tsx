@@ -21,11 +21,21 @@ export default function Login() {
         e.preventDefault();
         setError('');
         setLoading(true);
-        const result = await login(email, password);
-        if (result.success) {
-            navigate('/');
-        } else {
-            setError(result.error ?? 'Unknown error');
+        try {
+            const result = await login(email, password);
+            if (result.success) {
+                navigate('/');
+            } else {
+                const msg = typeof result.error === 'string' 
+                    ? result.error 
+                    : (result.error && typeof result.error === 'object' && 'message' in result.error)
+                        ? String((result.error as any).message)
+                        : 'Invalid login credentials';
+                setError(msg || 'Invalid login credentials');
+                setLoading(false);
+            }
+        } catch (err: any) {
+            setError(err?.message || 'An unexpected error occurred');
             setLoading(false);
         }
     }
