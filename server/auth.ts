@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from './index.js';
 
-const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET;
 
 export interface AuthRequest extends Request {
     user?: { id: string; role: string };
@@ -10,7 +10,7 @@ export interface AuthRequest extends Request {
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
     if (!SUPABASE_JWT_SECRET) {
-        return res.status(500).json({ error: 'Server misconfiguration: missing SUPABASE_JWT_SECRET' });
+        return res.status(500).json({ error: 'Server misconfiguration: missing SUPABASE_JWT_SECRET or JWT_SECRET' });
     }
 
     const authHeader = req.headers.authorization;
