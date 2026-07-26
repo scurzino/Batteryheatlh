@@ -19,6 +19,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function extractErrorMessage(error: unknown): string {
+    if (!error) return 'Unknown error';
+    if (typeof error === 'string') return error;
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'object' && error !== null) {
+        const e = error as Record<string, unknown>;
+        if (typeof e.message === 'string') return e.message;
+        if (typeof e.msg === 'string') return e.msg;
+        if (typeof e.error_description === 'string') return e.error_description;
+    }
+    return 'An unexpected error occurred';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -56,19 +69,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isAdmin = currentUser?.role === 'ADMIN';
 
     async function login(email: string, password: string) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) return { success: false, error: error.message };
-        return { success: true };
+        try {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) return { success: false, error: extractErrorMessage(error) };
+            return { success: true };
+        } catch (err) {
+            return { success: false, error: extractErrorMessage(err) };
+        }
     }
 
     async function signup(name: string, email: string, password: string) {
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { name } }
-        });
-        if (error) return { success: false, error: error.message };
-        return { success: true };
+        try {
+            const { error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: { data: { name } }
+            });
+            if (error) return { success: false, error: extractErrorMessage(error) };
+            return { success: true };
+        } catch (err) {
+            return { success: false, error: extractErrorMessage(err) };
+        }
     }
 
     async function logout() {
