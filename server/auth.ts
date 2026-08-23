@@ -1,16 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { createClient } from '@supabase/supabase-js';
 import { prisma } from './index.js';
 
-const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface AuthRequest extends Request {
     user?: { id: string; role: string };
 }
 
-export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
-    if (!SUPABASE_JWT_SECRET) {
-        return res.status(500).json({ error: 'Server misconfiguration: missing SUPABASE_JWT_SECRET or JWT_SECRET' });
+export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+    if (!supabaseUrl || !supabaseAnonKey) {
+        return res.status(500).json({ error: 'Server misconfiguration: missing Supabase environment variables' });
     }
 
     const authHeader = req.headers.authorization;
@@ -19,16 +22,23 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
     }
 
     const token = authHeader.split(' ')[1];
+    
     try {
-        const decoded = jwt.verify(token, SUPABASE_JWT_SECRET) as { sub: string; role?: string };
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        
+        if (error || !user) {
+            console.error('Supabase Auth Error:', error?.message);
+            return res.status(401).json({ error: 'Unauthorized: Invalid token', details: error?.message });
+        }
+        
         req.user = { 
-            id: decoded.sub, 
-            role: decoded.role || 'USER' 
+            id: user.id, 
+            role: user.user_metadata?.role || 'USER' 
         };
         next();
     } catch (err: any) {
-        console.error('JWT Verification Error:', err.message, err.name);
-        return res.status(401).json({ error: 'Unauthorized: Invalid token', details: err.message });
+        console.error('Unexpected Auth Error:', err.message);
+        return res.status(500).json({ error: 'Internal server error during authentication' });
     }
 }
 
