@@ -1,25 +1,27 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClient } from '@supabase/supabase-js';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { prisma } from './index.js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-console.log('Supabase Auth Middleware Init:', { 
-    hasUrl: !!supabaseUrl, 
-    hasKey: !!supabaseAnonKey,
-    urlPrefix: supabaseUrl.substring(0, 30) + '...'
-});
+if (!supabaseUrl) {
+    console.error('FATAL: Missing Supabase URL environment variable');
+} else {
+    console.log('Auth Middleware: Supabase URL loaded:', supabaseUrl.substring(0, 40) + '...');
+}
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// JWKS is fetched once and the public keys are cached automatically by jose
+const JWKS = supabaseUrl
+    ? createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`))
+    : null;
 
 export interface AuthRequest extends Request {
     user?: { id: string; role: string };
 }
 
 export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
-    if (!supabaseUrl || !supabaseAnonKey) {
-        return res.status(500).json({ error: 'Server misconfiguration: missing Supabase environment variables' });
+    if (!JWKS) {
+        return res.status(500).json({ error: 'Server misconfiguration: missing Supabase URL' });
     }
 
     const authHeader = req.headers.authorization;
@@ -28,23 +30,18 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
     }
 
     const token = authHeader.split(' ')[1];
-    
+
     try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (error || !user) {
-            console.error('Supabase Auth Error:', error?.message);
-            return res.status(401).json({ error: 'Unauthorized: Invalid token', details: error?.message });
-        }
-        
-        req.user = { 
-            id: user.id, 
-            role: user.user_metadata?.role || 'USER' 
+        const { payload } = await jwtVerify(token, JWKS);
+
+        req.user = {
+            id: payload.sub!,
+            role: (payload as any).user_metadata?.role || 'USER'
         };
         next();
     } catch (err: any) {
-        console.error('Unexpected Auth Error:', err.message);
-        return res.status(500).json({ error: 'Internal server error during authentication' });
+        console.error('JWT Verification Error:', err.message);
+        return res.status(401).json({ error: 'Unauthorized: Invalid token', details: err.message });
     }
 }
 
