@@ -1,27 +1,40 @@
 import { Request, Response, NextFunction } from 'express';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { importJWK, jwtVerify } from 'jose';
 import { prisma } from './index.js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+// ── Supabase ES256 Public Key (from JWKS endpoint) ─────────────────────
+// This is the public verification key for your Supabase project.
+// It is NOT a secret — it's publicly available at:
+// https://pqazhlzkkhhsagwsoxfw.supabase.co/auth/v1/.well-known/jwks.json
+// Embedded here to eliminate network calls and avoid timeouts on Vercel.
+const SUPABASE_JWK = {
+    alg: "ES256" as const,
+    crv: "P-256" as const,
+    kty: "EC" as const,
+    x: "Ot7mZrOBUGrJ-kQK95dbrP08o8tzV5tBuMFY4TpyIPY",
+    y: "a3feqPpMgbHnnsV3jSP0RDXLarYfQRgP8SoIAOGxnS0"
+};
 
-if (!supabaseUrl) {
-    console.error('FATAL: Missing Supabase URL environment variable');
-} else {
-    console.log('Auth Middleware: Supabase URL loaded:', supabaseUrl.substring(0, 40) + '...');
-}
-
-// JWKS is fetched once and the public keys are cached automatically by jose
-const JWKS = supabaseUrl
-    ? createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`))
-    : null;
+// Import the key once at startup (pure CPU operation, no network)
+let verificationKey: CryptoKey | null = null;
+const keyReady = importJWK(SUPABASE_JWK, 'ES256').then(key => {
+    verificationKey = key as CryptoKey;
+    console.log('Auth Middleware: ES256 public key loaded successfully');
+}).catch(err => {
+    console.error('FATAL: Failed to import Supabase JWK:', err.message);
+});
 
 export interface AuthRequest extends Request {
     user?: { id: string; role: string };
 }
 
 export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
-    if (!JWKS) {
-        return res.status(500).json({ error: 'Server misconfiguration: missing Supabase URL' });
+    // Ensure key is loaded (first request may need to wait a few ms)
+    if (!verificationKey) {
+        await keyReady;
+        if (!verificationKey) {
+            return res.status(500).json({ error: 'Server misconfiguration: failed to load verification key' });
+        }
     }
 
     const authHeader = req.headers.authorization;
@@ -32,7 +45,9 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
     const token = authHeader.split(' ')[1];
 
     try {
-        const { payload } = await jwtVerify(token, JWKS);
+        const { payload } = await jwtVerify(token, verificationKey, {
+            algorithms: ['ES256'],
+        });
 
         req.user = {
             id: payload.sub!,
@@ -40,7 +55,7 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
         };
         next();
     } catch (err: any) {
-        console.error('JWT Verification Error:', err.message);
+        console.error('JWT Verification Error:', err.code, err.message);
         return res.status(401).json({ error: 'Unauthorized: Invalid token', details: err.message });
     }
 }
