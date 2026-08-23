@@ -18,11 +18,13 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Moderation from './pages/Moderation';
+import SystemBanner from './components/SystemBanner';
 
 export default function App() {
   return (
     <>
       <BrowserRouter>
+        <SystemBanner />
         <Routes>
           {/* Standalone auth pages (no layout) */}
           <Route path="/login" element={<Login />} />
