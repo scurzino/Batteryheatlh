@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -7,14 +6,12 @@ async function main() {
   console.log('Inizio il popolamento del database...');
 
   // 1. Crea un utente di test se non esiste
-  const passwordHash = await bcrypt.hash('password123', 10);
   const testUser = await prisma.user.upsert({
     where: { email: 'test@example.com' },
     update: {},
     create: {
       email: 'test@example.com',
       name: 'Mario Rossi',
-      passwordHash: passwordHash,
       role: 'ADMIN'
     }
   });

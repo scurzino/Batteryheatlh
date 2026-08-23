@@ -20,7 +20,6 @@ async function main() {
         data: {
             email: 'admin@ev-soh.it',
             name: 'Pannello Admin',
-            passwordHash: adminHash,
             role: 'ADMIN',
         }
     });
@@ -29,7 +28,6 @@ async function main() {
         data: {
             email: 'marco@example.it', // Using marco@example.it based on Login.tsx UI text
             name: 'Marco Test',
-            passwordHash: userHash,
             role: 'USER',
         }
     });
