@@ -26,8 +26,9 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
             role: decoded.role || 'USER' 
         };
         next();
-    } catch (err) {
-        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    } catch (err: any) {
+        console.error('JWT Verification Error:', err.message, err.name);
+        return res.status(401).json({ error: 'Unauthorized: Invalid token', details: err.message });
     }
 }
 
