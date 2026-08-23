@@ -37,30 +37,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        async function loadUser(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, any> }) {
+            // Start with the role from Supabase user_metadata
+            let role = supabaseUser.user_metadata?.role || 'USER';
+            
+            // Then fetch the authoritative role from our backend
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    const res = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': `Bearer ${session.access_token}` }
+                    });
+                    if (res.ok) {
+                        const profile = await res.json();
+                        role = profile.role || role;
+                    }
+                }
+            } catch {
+                // Fallback to user_metadata role
+            }
+
+            setCurrentUser({
+                id: supabaseUser.id,
+                email: supabaseUser.email!,
+                name: supabaseUser.user_metadata?.name || null,
+                role,
+            });
+        }
+
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
-                setCurrentUser({
-                    id: session.user.id,
-                    email: session.user.email!,
-                    name: session.user.user_metadata?.name || null,
-                    role: 'USER', // Ruolo di default, espandibile con i metadati di Supabase
-                });
+                loadUser(session.user).finally(() => setIsLoading(false));
+            } else {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
-                setCurrentUser({
-                    id: session.user.id,
-                    email: session.user.email!,
-                    name: session.user.user_metadata?.name || null,
-                    role: 'USER', 
-                });
+                loadUser(session.user).finally(() => setIsLoading(false));
             } else {
                 setCurrentUser(null);
+                setIsLoading(false);
             }
-            setIsLoading(false);
         });
 
         return () => subscription.unsubscribe();
