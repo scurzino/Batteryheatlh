@@ -51,9 +51,11 @@ export default function VehicleDetail() {
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
 
     apiFetch(`/soh/${id}`)
       .then(data => {
+        if (cancelled) return;
         setEntry(data);
         setUpdateForm({
           grossCapacity: data.vehicle.grossCapacity?.toString() || '',
@@ -122,30 +124,42 @@ export default function VehicleDetail() {
           measurementMethod: data.measurementMethod || '',
           measurementTemp: data.measurementTemp?.toString() || ''
         }));
-        return data;
-      })
-      .then(async (data) => {
-        const explore = await apiFetch('/soh/explore');
-        const sameModel = explore.filter((e: any) =>
-          e.vehicle.oem === data.vehicle.oem &&
-          e.vehicle.model === data.vehicle.model
-        );
-        setPeers(sameModel);
+        // Dati secondari: caricati in parallelo e in modo indipendente. Un fallimento
+        // qui (rete instabile, rate limit momentaneo, ecc.) non deve mai far uscire
+        // l'utente dalla pagina della misurazione principale — al massimo quella
+        // singola sezione resta vuota finché non viene ricaricata.
+        apiFetch('/soh/explore')
+          .then(explore => {
+            if (cancelled) return;
+            setPeers(explore.filter((e: any) =>
+              e.vehicle.oem === data.vehicle.oem && e.vehicle.model === data.vehicle.model
+            ));
+          })
+          .catch(() => {});
 
-        const fetchedTrips = await apiFetch(`/soh/${data.vehicle.id}/trips`);
-        setTrips(fetchedTrips);
+        apiFetch(`/soh/${data.vehicle.id}/trips`)
+          .then(fetchedTrips => !cancelled && setTrips(fetchedTrips))
+          .catch(() => {});
 
-        const fetchedNotes = await apiFetch(`/soh/${data.vehicle.id}/notes`);
-        setNotes(fetchedNotes);
+        apiFetch(`/soh/${data.vehicle.id}/notes`)
+          .then(fetchedNotes => !cancelled && setNotes(fetchedNotes))
+          .catch(() => {});
 
         if (currentUser) {
-          const fetchedMyEntries = await apiFetch('/soh/my-entries');
-          setMyEntries(fetchedMyEntries.filter((e: any) => e.vehicleId === data.vehicle.id));
+          apiFetch('/soh/my-entries')
+            .then(fetchedMyEntries => !cancelled && setMyEntries(fetchedMyEntries.filter((e: any) => e.vehicleId === data.vehicle.id)))
+            .catch(() => {});
         }
+
+        return data;
       })
-      .catch(() => navigate('/'))
-      .finally(() => setLoading(false));
-  }, [id, navigate, currentUser]);
+      // Solo il fallimento del fetch PRINCIPALE (la misurazione richiesta non esiste
+      // o non è accessibile) deve riportare l'utente alla home.
+      .catch(() => { if (!cancelled) navigate('/'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [id, navigate, currentUser?.id]);
 
   async function submitNote(e: React.FormEvent) {
     e.preventDefault();
@@ -210,22 +224,37 @@ export default function VehicleDetail() {
     e.preventDefault();
     setIsSubmittingSoh(true);
     try {
+      const vehicleId = entry.vehicle.id;
+      const oem = entry.vehicle.oem;
+      const model = entry.vehicle.model;
+
       const response = await apiFetch('/soh/entry', {
         method: 'POST',
         body: JSON.stringify({
           ...addSohForm,
-          vehicleId: entry.vehicle.id,
+          vehicleId,
           region: entry.region,
           usageType: entry.usageType,
           chargeType: entry.chargeType,
-          oem: entry.vehicle.oem,
-          model: entry.vehicle.model,
+          oem,
+          model,
           year: entry.vehicle.year,
           batteryModel: entry.vehicle.batteryModel
         })
       });
-      const fetchedMyEntries = await apiFetch('/soh/my-entries');
-      setMyEntries(fetchedMyEntries.filter((e: any) => e.vehicleId === entry.vehicle.id));
+
+      // Riflette subito la nuova misurazione nella card principale e nella scheda
+      // Overview, non solo nella scheda SOH History: prima veniva aggiornato solo
+      // myEntries, lasciando header e grafico community sui dati vecchi.
+      setEntry((prev: any) => ({ ...prev, ...response.entry, vehicle: prev.vehicle }));
+
+      const [fetchedMyEntries, explore] = await Promise.all([
+        apiFetch('/soh/my-entries'),
+        apiFetch('/soh/explore')
+      ]);
+      setMyEntries(fetchedMyEntries.filter((e: any) => e.vehicleId === vehicleId));
+      setPeers(explore.filter((e: any) => e.vehicle.oem === oem && e.vehicle.model === model));
+
       setShowAddSohModal(false);
       alert('New measurement added!');
     } catch (err) {
