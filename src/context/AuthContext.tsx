@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '../utils/supabase';
 
 export interface User {
@@ -36,25 +36,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Evita di richiamare /api/auth/me ad ogni evento onAuthStateChange (cambio tab,
+    // refresh automatico del token, ecc.) quando il token è invariato rispetto
+    // all'ultima verifica: riusa il ruolo già confermato dal backend.
+    const lastVerifiedTokenRef = useRef<string | null>(null);
+    const lastVerifiedRoleRef = useRef<string>('USER');
+
     useEffect(() => {
-        async function loadUser(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, any> }) {
+        async function loadUser(
+            supabaseUser: { id: string; email?: string; user_metadata?: Record<string, any> },
+            accessToken?: string
+        ) {
             // Start with the role from Supabase user_metadata
             let role = supabaseUser.user_metadata?.role || 'USER';
-            
-            // Then fetch the authoritative role from our backend
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session?.access_token) {
+
+            if (accessToken && accessToken === lastVerifiedTokenRef.current) {
+                // Stesso token già verificato dal backend in questa sessione: riusa il ruolo.
+                role = lastVerifiedRoleRef.current;
+            } else if (accessToken) {
+                // Fetch the authoritative role from our backend
+                try {
                     const res = await fetch('/api/auth/me', {
-                        headers: { 'Authorization': `Bearer ${session.access_token}` }
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
                     });
                     if (res.ok) {
                         const profile = await res.json();
                         role = profile.role || role;
                     }
+                    lastVerifiedTokenRef.current = accessToken;
+                    lastVerifiedRoleRef.current = role;
+                } catch {
+                    // Fallback to user_metadata role
                 }
-            } catch {
-                // Fallback to user_metadata role
             }
 
             setCurrentUser({
@@ -67,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
-                loadUser(session.user).finally(() => setIsLoading(false));
+                loadUser(session.user, session.access_token).finally(() => setIsLoading(false));
             } else {
                 setIsLoading(false);
             }
@@ -75,8 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
-                loadUser(session.user).finally(() => setIsLoading(false));
+                loadUser(session.user, session.access_token).finally(() => setIsLoading(false));
             } else {
+                lastVerifiedTokenRef.current = null;
                 setCurrentUser(null);
                 setIsLoading(false);
             }

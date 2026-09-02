@@ -8,3 +8,10 @@ coverage/
 !.env.example
 
 /src/generated/prisma
+
+# Local SQLite DB, error dumps and Office lock files — not meant to be versioned
+*.db
+*.db-journal
+prisma_error_full.txt
+write_error.js
+~$*
