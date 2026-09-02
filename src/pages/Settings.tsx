@@ -33,7 +33,7 @@ export default function Settings() {
     } else {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   if (!currentUser) {
     return (
