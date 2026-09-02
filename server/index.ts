@@ -30,23 +30,19 @@ app.use(cors({
 app.use(express.json());
 
 // 2. Global Rate Limiter per API normali
+// Nota: 100 req/15min condivise su TUTTE le rotte /api causavano 429 spuri durante
+// l'uso normale (autocomplete, controlli di sessione ripetuti, navigazione multi-pagina).
+// Alzato il tetto e escluso il controllo sessione (/api/auth/me) e l'health check,
+// che non sono azioni "costose" o a rischio di abuso.
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 100,
+    limit: 300,
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: 'draft-8',
     legacyHeaders: false,
+    skip: (req: Request) => req.path === '/api/auth/me' || req.path === '/api/health',
 });
 app.use(limiter);
-
-// Limiter specifico per login/register contro brute-force
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 5,
-    message: 'Too many login attempts from this IP, please try again later.',
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-});
 
 // 3. Health Check Route
 app.get('/api/health', (req: Request, res: Response) => {

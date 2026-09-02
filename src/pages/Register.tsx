@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, CheckCircle, Car, MapPin, Zap, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -61,6 +61,11 @@ export default function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [resultStatus, setResultStatus] = useState<string>('APPROVED');
+
+  // Cache dei cataloghi OEM/modello: una sola chiamata API invece di una ad ogni
+  // digitazione (evitava di consumare il budget del rate limiter condiviso).
+  const oemsCacheRef = useRef<string[] | null>(null);
+  const modelsCacheRef = useRef<{ oem: string; models: string[] } | null>(null);
 
   function set(field: keyof FormData, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -173,8 +178,10 @@ export default function Register() {
                   onChange={(val) => set('oem', val)}
                   fetchSuggestions={async (q) => {
                     try {
-                      const all: string[] = await apiFetch('/vehicles/oems');
-                      return all.filter((o: string) => o.toLowerCase().includes(q.toLowerCase()));
+                      if (!oemsCacheRef.current) {
+                        oemsCacheRef.current = await apiFetch('/vehicles/oems');
+                      }
+                      return oemsCacheRef.current!.filter((o: string) => o.toLowerCase().includes(q.toLowerCase()));
                     } catch { return OEMS.filter(o => o.toLowerCase().includes(q.toLowerCase())); }
                   }}
                   placeholder="e.g. Tesla, Volkswagen..."
@@ -189,8 +196,11 @@ export default function Register() {
                     fetchSuggestions={async (q) => {
                       if (!form.oem) return [];
                       try {
-                        const models: string[] = await apiFetch(`/vehicles/models?oem=${encodeURIComponent(form.oem)}`);
-                        return models.filter((m: string) => m.toLowerCase().includes(q.toLowerCase()));
+                        if (modelsCacheRef.current?.oem !== form.oem) {
+                          const models: string[] = await apiFetch(`/vehicles/models?oem=${encodeURIComponent(form.oem)}`);
+                          modelsCacheRef.current = { oem: form.oem, models };
+                        }
+                        return modelsCacheRef.current!.models.filter((m: string) => m.toLowerCase().includes(q.toLowerCase()));
                       } catch { return []; }
                     }}
                     placeholder={form.oem ? `Model for ${form.oem}...` : 'Select OEM first'}
